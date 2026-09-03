@@ -1,0 +1,67 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+model User {
+   id        String   @id @default(uuid())
+   email     String   @unique
+   name      String
+   password  String
+   CreatedAt DateTime @default(now())
+   UpdateAt  DateTime @updatedAt
+
+   Objects   Object[]
+   relations Relation[]
+
+}
+
+model Object {
+  id         String   @id @default(uuid())
+  userId     String
+  type       String
+  title      String
+  properties Json?
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  sourceRelations Relation[] @relation("SourceRelations")
+  targetRelations Relation[] @relation("TargetRelations")
+
+  @@index([userId])
+  @@index([type])
+}
+
+model Relation {
+  id        String   @id @default(uuid())
+  userId    String
+
+  sourceId  String
+  targetId  String
+
+  type      String
+
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  source Object @relation("SourceRelations", fields: [sourceId], references: [id], onDelete: Cascade)
+  target Object @relation("TargetRelations", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@index([sourceId])
+  @@index([targetId])
+  @@index([userId])
+}
