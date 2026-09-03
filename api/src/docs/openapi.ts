@@ -20,6 +20,14 @@ import {
   updateProjectSchema,
   projectIdParamSchema,
 } from "../validation/project.validation";
+import { createNoteSchema, updateNoteSchema, noteIdParamSchema } from "../validation/note.validation";
+import { createEventSchema, updateEventSchema, eventIdParamSchema } from "../validation/event.validation";
+import { createFileSchema, fileIdParamSchema } from "../validation/file.validation";
+import {
+  createExpenseSchema,
+  updateExpenseSchema,
+  expenseIdParamSchema,
+} from "../validation/expense.validation";
 
 const registry = new OpenAPIRegistry();
 
@@ -104,6 +112,80 @@ const projectSchema = z
     updatedAt: z.string().datetime(),
   })
   .openapi("Project");
+
+const noteSchema = z
+  .object({
+    id: z.uuid(),
+    userId: z.uuid(),
+    type: z.literal("note"),
+    title: z.string().openapi({ example: "Dashboard ideas" }),
+    properties: z
+      .object({
+        content: z.string().openapi({ example: "Ideas for LifeOS dashboard..." }),
+      })
+      .nullable(),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+  })
+  .openapi("Note");
+
+const eventSchema = z
+  .object({
+    id: z.uuid(),
+    userId: z.uuid(),
+    type: z.literal("event"),
+    title: z.string().openapi({ example: "Client meeting" }),
+    properties: z
+      .object({
+        description: z.string().optional().openapi({ example: "Client meeting" }),
+        startAt: z.string().datetime().openapi({ example: "2026-09-10T10:00:00Z" }),
+        endAt: z.string().datetime().openapi({ example: "2026-09-10T11:00:00Z" }),
+        location: z.string().optional().openapi({ example: "Ahmedabad" }),
+      })
+      .nullable(),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+  })
+  .openapi("Event");
+
+const fileSchema = z
+  .object({
+    id: z.uuid(),
+    userId: z.uuid(),
+    type: z.literal("file"),
+    title: z.string().openapi({ example: "resume.pdf" }),
+    properties: z
+      .object({
+        url: z.url().openapi({ example: "https://example.com/files/resume.pdf" }),
+        fileName: z.string().openapi({ example: "resume.pdf" }),
+        mimeType: z.string().openapi({ example: "application/pdf" }),
+        size: z.number().int().openapi({ example: 123456 }),
+      })
+      .nullable(),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+  })
+  .openapi("File");
+
+const expenseSchema = z
+  .object({
+    id: z.uuid(),
+    userId: z.uuid(),
+    type: z.literal("expense"),
+    title: z.string().openapi({ example: "Lunch" }),
+    properties: z
+      .object({
+        amount: z.number().openapi({ example: 500 }),
+        currency: z.string().openapi({ example: "INR" }),
+        category: z.string().openapi({ example: "food" }),
+        date: z.string().openapi({ example: "2026-09-03" }),
+        description: z.string().optional().openapi({ example: "Lunch" }),
+      })
+      .nullable(),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+  })
+  .openapi("Expense");
 
 const relationSchema = z
   .object({
@@ -445,6 +527,283 @@ registry.registerPath({
     400: { description: "Validation error", ...jsonBody(errorResponse) },
     401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
     404: { description: "Project not found", ...jsonBody(errorResponse) },
+  },
+});
+
+// -- Notes --
+
+registry.registerPath({
+  method: "post",
+  path: "/api/notes",
+  tags: ["Notes"],
+  summary: "Create a Note",
+  security: authSecurity,
+  request: { body: jsonBody(createNoteSchema) },
+  responses: {
+    201: { description: "Note created", ...jsonBody(successResponse(noteSchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/notes",
+  tags: ["Notes"],
+  summary: "List all Notes belonging to the authenticated user",
+  security: authSecurity,
+  responses: {
+    200: { description: "List of notes", ...jsonBody(successResponse(z.array(noteSchema))) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/notes/{id}",
+  tags: ["Notes"],
+  summary: "Get a single Note",
+  security: authSecurity,
+  request: { params: noteIdParamSchema },
+  responses: {
+    200: { description: "Note found", ...jsonBody(successResponse(noteSchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+    404: { description: "Note not found", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "patch",
+  path: "/api/notes/{id}",
+  tags: ["Notes"],
+  summary: "Update a Note",
+  security: authSecurity,
+  request: { params: noteIdParamSchema, body: jsonBody(updateNoteSchema) },
+  responses: {
+    200: { description: "Note updated", ...jsonBody(successResponse(noteSchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+    404: { description: "Note not found", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "delete",
+  path: "/api/notes/{id}",
+  tags: ["Notes"],
+  summary: "Delete a Note",
+  security: authSecurity,
+  request: { params: noteIdParamSchema },
+  responses: {
+    200: { description: "Note deleted", ...jsonBody(successResponse(noteSchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+    404: { description: "Note not found", ...jsonBody(errorResponse) },
+  },
+});
+
+// -- Events --
+
+registry.registerPath({
+  method: "post",
+  path: "/api/events",
+  tags: ["Events"],
+  summary: "Create an Event",
+  security: authSecurity,
+  request: { body: jsonBody(createEventSchema) },
+  responses: {
+    201: { description: "Event created", ...jsonBody(successResponse(eventSchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/events",
+  tags: ["Events"],
+  summary: "List all Events belonging to the authenticated user",
+  security: authSecurity,
+  responses: {
+    200: { description: "List of events", ...jsonBody(successResponse(z.array(eventSchema))) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/events/{id}",
+  tags: ["Events"],
+  summary: "Get a single Event",
+  security: authSecurity,
+  request: { params: eventIdParamSchema },
+  responses: {
+    200: { description: "Event found", ...jsonBody(successResponse(eventSchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+    404: { description: "Event not found", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "patch",
+  path: "/api/events/{id}",
+  tags: ["Events"],
+  summary: "Update an Event",
+  security: authSecurity,
+  request: { params: eventIdParamSchema, body: jsonBody(updateEventSchema) },
+  responses: {
+    200: { description: "Event updated", ...jsonBody(successResponse(eventSchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+    404: { description: "Event not found", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "delete",
+  path: "/api/events/{id}",
+  tags: ["Events"],
+  summary: "Delete an Event",
+  security: authSecurity,
+  request: { params: eventIdParamSchema },
+  responses: {
+    200: { description: "Event deleted", ...jsonBody(successResponse(eventSchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+    404: { description: "Event not found", ...jsonBody(errorResponse) },
+  },
+});
+
+// -- Files --
+
+registry.registerPath({
+  method: "post",
+  path: "/api/files",
+  tags: ["Files"],
+  summary: "Create a File metadata record (no actual upload/storage)",
+  security: authSecurity,
+  request: { body: jsonBody(createFileSchema) },
+  responses: {
+    201: { description: "File record created", ...jsonBody(successResponse(fileSchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/files",
+  tags: ["Files"],
+  summary: "List all Files belonging to the authenticated user",
+  security: authSecurity,
+  responses: {
+    200: { description: "List of files", ...jsonBody(successResponse(z.array(fileSchema))) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/files/{id}",
+  tags: ["Files"],
+  summary: "Get a single File",
+  security: authSecurity,
+  request: { params: fileIdParamSchema },
+  responses: {
+    200: { description: "File found", ...jsonBody(successResponse(fileSchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+    404: { description: "File not found", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "delete",
+  path: "/api/files/{id}",
+  tags: ["Files"],
+  summary: "Delete a File",
+  security: authSecurity,
+  request: { params: fileIdParamSchema },
+  responses: {
+    200: { description: "File deleted", ...jsonBody(successResponse(fileSchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+    404: { description: "File not found", ...jsonBody(errorResponse) },
+  },
+});
+
+// -- Expenses --
+
+registry.registerPath({
+  method: "post",
+  path: "/api/expenses",
+  tags: ["Expenses"],
+  summary: "Create an Expense",
+  security: authSecurity,
+  request: { body: jsonBody(createExpenseSchema) },
+  responses: {
+    201: { description: "Expense created", ...jsonBody(successResponse(expenseSchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/expenses",
+  tags: ["Expenses"],
+  summary: "List all Expenses belonging to the authenticated user",
+  security: authSecurity,
+  responses: {
+    200: { description: "List of expenses", ...jsonBody(successResponse(z.array(expenseSchema))) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/expenses/{id}",
+  tags: ["Expenses"],
+  summary: "Get a single Expense",
+  security: authSecurity,
+  request: { params: expenseIdParamSchema },
+  responses: {
+    200: { description: "Expense found", ...jsonBody(successResponse(expenseSchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+    404: { description: "Expense not found", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "patch",
+  path: "/api/expenses/{id}",
+  tags: ["Expenses"],
+  summary: "Update an Expense",
+  security: authSecurity,
+  request: { params: expenseIdParamSchema, body: jsonBody(updateExpenseSchema) },
+  responses: {
+    200: { description: "Expense updated", ...jsonBody(successResponse(expenseSchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+    404: { description: "Expense not found", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "delete",
+  path: "/api/expenses/{id}",
+  tags: ["Expenses"],
+  summary: "Delete an Expense",
+  security: authSecurity,
+  request: { params: expenseIdParamSchema },
+  responses: {
+    200: { description: "Expense deleted", ...jsonBody(successResponse(expenseSchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+    404: { description: "Expense not found", ...jsonBody(errorResponse) },
   },
 });
 

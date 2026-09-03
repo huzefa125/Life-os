@@ -11,6 +11,10 @@ import searchRouter from "./routes/search.routes";
 import timelineRouter from "./routes/timeline.routes";
 import tasksRouter from "./routes/tasks.routes";
 import projectsRouter from "./routes/projects.routes";
+import notesRouter from "./routes/notes.routes";
+import eventsRouter from "./routes/events.routes";
+import filesRouter from "./routes/files.routes";
+import expensesRouter from "./routes/expenses.routes";
 import { errorHandler } from "./middleware/errorHandler";
 import { openApiDocument } from "./docs/openapi";
 
@@ -29,6 +33,10 @@ app.use("/api/search", searchRouter);
 app.use("/api/timeline", timelineRouter);
 app.use("/api/tasks", tasksRouter);
 app.use("/api/projects", projectsRouter);
+app.use("/api/notes", notesRouter);
+app.use("/api/events", eventsRouter);
+app.use("/api/files", filesRouter);
+app.use("/api/expenses", expensesRouter);
 
 app.get("/api-docs.json", (req, res) => res.json(openApiDocument));
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openApiDocument));

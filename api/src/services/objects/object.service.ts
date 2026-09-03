@@ -1,44 +1,5 @@
 import { prisma } from "../../db";
-import type {
-  CreateObjectInput,
-  UpdateObjectInput,
-  ObjectResponse,
-} from "../../types/objects/object.types";
-
-export const createObject = async (data: CreateObjectInput) => {
-  return prisma.object.create({
-    data: {
-      userId: data.userId,
-      type: data.type,
-      title: data.title,
-      properties: data.properties,
-    },
-  });
-};
-
-
-export async function getObjectById(
-  id: string
-): Promise<ObjectResponse | null> {
-  return prisma.object.findUnique({ where: { id } });
-}
-
-export async function getObjectsByUser(
-  userId: string
-): Promise<ObjectResponse[]> {
-  return prisma.object.findMany({ where: { userId } });
-}
-
-export async function updateObject(
-  id: string,
-  input: UpdateObjectInput
-): Promise<ObjectResponse> {
-  return prisma.object.update({ where: { id }, data: input });
-}
-
-export async function deleteObject(id: string): Promise<void> {
-  await prisma.object.delete({ where: { id } });
-}
+import type { ObjectResponse } from "../../types/objects/object.types";
 
 export interface ObjectConnection {
   relation: {
