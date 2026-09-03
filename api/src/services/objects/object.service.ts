@@ -1,5 +1,6 @@
 import { prisma } from "../../db";
-import type { ObjectResponse } from "../../types/objects/object.types";
+
+type ObjectRecord = NonNullable<Awaited<ReturnType<typeof prisma.object.findFirst>>>;
 
 export interface ObjectConnection {
   relation: {
@@ -7,11 +8,11 @@ export interface ObjectConnection {
     type: string;
     direction: "outgoing" | "incoming";
   };
-  object: ObjectResponse;
+  object: ObjectRecord;
 }
 
 export interface ObjectWithConnections {
-  object: ObjectResponse;
+  object: ObjectRecord;
   connections: ObjectConnection[];
 }
 
