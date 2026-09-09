@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/table";
 import { api, ApiError } from "@/lib/api-client";
 import { avatarColor, initials } from "@/lib/avatar-color";
+import { isSelf } from "@/lib/self-person";
 import type { Person } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { CreatePersonDialog } from "./create-person-dialog";
@@ -36,7 +37,7 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { dateStyle: "medium" });
 }
 
-const BUILT_IN_KEYS = ["email", "company"];
+const BUILT_IN_KEYS = ["email", "company", "self"];
 
 function capitalize(key: string) {
   return key.replace(/[_-]+/g, " ").replace(/^./, (c) => c.toUpperCase());
@@ -241,6 +242,11 @@ export function PeopleView() {
                         </AvatarFallback>
                       </Avatar>
                       <span className="font-medium">{person.title}</span>
+                      {isSelf(person.properties) ? (
+                        <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                          You
+                        </span>
+                      ) : null}
                     </div>
                   </TableCell>
                   <TableCell className="text-[13px] text-muted-foreground">

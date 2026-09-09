@@ -23,9 +23,12 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { api, ApiError } from "@/lib/api-client";
-import { findAssignee } from "@/lib/relations";
+import { findAssignee, findParentProject } from "@/lib/relations";
+import { ensureSelfPerson } from "@/lib/self-person";
 import { PRIORITY_LABEL, STATUS_LABEL } from "@/lib/task-meta";
-import type { GenericObject, Person, Task, TaskPriority, TaskStatus } from "@/lib/types";
+import type { GenericObject, Task, TaskPriority, TaskStatus } from "@/lib/types";
+import { useAuth } from "@/contexts/auth-context";
+import { NO_PROJECT, ProjectSelect } from "@/components/projects/project-select";
 import { AssigneeSelect, UNASSIGNED } from "./assignee-select";
 
 const NO_PRIORITY = "none";
@@ -90,22 +93,40 @@ function TaskDetailForm({
   const [deleting, setDeleting] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
-  const [people, setPeople] = useState<Person[]>([]);
+  const { user } = useAuth();
+  const [selfPerson, setSelfPerson] = useState<GenericObject | null>(null);
   const [assigneeId, setAssigneeId] = useState(UNASSIGNED);
+  const [loadedAssigneeId, setLoadedAssigneeId] = useState(UNASSIGNED);
+  const [selectedAssignee, setSelectedAssignee] = useState<GenericObject | null>(null);
   const [assigneeRelationId, setAssigneeRelationId] = useState<string | null>(null);
   const [assigneeLoading, setAssigneeLoading] = useState(true);
-  const [assigneeSaving, setAssigneeSaving] = useState(false);
+
+  const [projectId, setProjectId] = useState(NO_PROJECT);
+  const [loadedProjectId, setLoadedProjectId] = useState(NO_PROJECT);
+  const [selectedProject, setSelectedProject] = useState<GenericObject | null>(null);
+  const [projectRelationId, setProjectRelationId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     Promise.all([api.people.list(), api.objects.connections(task.id)])
-      .then(([peopleList, connections]) => {
+      .then(async ([peopleList, connections]) => {
         if (cancelled) return;
-        setPeople(peopleList);
+        const self = user ? await ensureSelfPerson(user, peopleList) : null;
+        if (cancelled) return;
+        setSelfPerson(self);
         const assignee = findAssignee(connections.connections);
         if (assignee) {
           setAssigneeId(assignee.person.id);
+          setLoadedAssigneeId(assignee.person.id);
           setAssigneeRelationId(assignee.relationId);
+          setSelectedAssignee(assignee.person);
+        }
+        const parent = findParentProject(connections.connections, "has_task");
+        if (parent) {
+          setProjectId(parent.project.id);
+          setLoadedProjectId(parent.project.id);
+          setProjectRelationId(parent.relationId);
+          setSelectedProject(parent.project);
         }
       })
       .catch(() => {
@@ -117,41 +138,25 @@ function TaskDetailForm({
     return () => {
       cancelled = true;
     };
-  }, [task.id]);
+  }, [task.id, user]);
 
-  async function onAssigneeChange(nextId: string) {
-    const previousId = assigneeId;
-    const previousRelationId = assigneeRelationId;
-    setAssigneeSaving(true);
-    setAssigneeId(nextId);
-    try {
-      if (previousRelationId) {
-        await api.relations.remove(previousRelationId);
-        setAssigneeRelationId(null);
-      }
-      if (nextId !== UNASSIGNED) {
-        const relation = await api.relations.create({
-          sourceId: task.id,
-          targetId: nextId,
-          type: "assigned_to",
-        });
-        setAssigneeRelationId(relation.id);
-      }
-      onAssigneeChanged?.(task.id, people.find((p) => p.id === nextId) ?? null);
-    } catch (error) {
-      setAssigneeId(previousId);
-      setAssigneeRelationId(previousRelationId);
-      toast.error(error instanceof ApiError ? error.message : "Couldn't update assignee");
-    } finally {
-      setAssigneeSaving(false);
-    }
+  function onAssigneePick(id: string, person: GenericObject | null) {
+    setAssigneeId(id);
+    setSelectedAssignee(person);
+  }
+
+  function onProjectPick(id: string, project: GenericObject | null) {
+    setProjectId(id);
+    setSelectedProject(project);
   }
 
   const dirty =
     title.trim() !== task.title ||
     status !== (task.properties?.status ?? "todo") ||
     priority !== (task.properties?.priority ?? NO_PRIORITY) ||
-    dueDate !== (task.properties?.dueDate ?? "");
+    dueDate !== (task.properties?.dueDate ?? "") ||
+    assigneeId !== loadedAssigneeId ||
+    projectId !== loadedProjectId;
 
   async function onSave() {
     if (!title.trim()) return;
@@ -166,6 +171,44 @@ function TaskDetailForm({
         },
       });
       onUpdated(updated);
+
+      if (assigneeId !== loadedAssigneeId) {
+        if (assigneeRelationId) {
+          await api.relations.remove(assigneeRelationId);
+        }
+        const nextRelationId =
+          assigneeId !== UNASSIGNED
+            ? (
+                await api.relations.create({
+                  sourceId: task.id,
+                  targetId: assigneeId,
+                  type: "assigned_to",
+                })
+              ).id
+            : null;
+        setAssigneeRelationId(nextRelationId);
+        setLoadedAssigneeId(assigneeId);
+        onAssigneeChanged?.(task.id, selectedAssignee);
+      }
+
+      if (projectId !== loadedProjectId) {
+        if (projectRelationId) {
+          await api.relations.remove(projectRelationId);
+        }
+        const nextRelationId =
+          projectId !== NO_PROJECT
+            ? (
+                await api.relations.create({
+                  sourceId: projectId,
+                  targetId: task.id,
+                  type: "has_task",
+                })
+              ).id
+            : null;
+        setProjectRelationId(nextRelationId);
+        setLoadedProjectId(projectId);
+      }
+
       toast.success("Saved");
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : "Couldn't save changes");
@@ -205,10 +248,21 @@ function TaskDetailForm({
         <div className="flex flex-col gap-1.5">
           <Label>Assignee</Label>
           <AssigneeSelect
-            people={people}
             value={assigneeId}
-            onChange={onAssigneeChange}
-            disabled={assigneeLoading || assigneeSaving}
+            selected={selectedAssignee}
+            selfPerson={selfPerson}
+            onChange={onAssigneePick}
+            disabled={assigneeLoading || saving}
+          />
+        </div>
+
+        <div className="mt-4 flex flex-col gap-1.5">
+          <Label>Project</Label>
+          <ProjectSelect
+            value={projectId}
+            selected={selectedProject}
+            onChange={onProjectPick}
+            disabled={saving}
           />
         </div>
 

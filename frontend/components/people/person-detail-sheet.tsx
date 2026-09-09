@@ -19,7 +19,7 @@ import { Separator } from "@/components/ui/separator";
 import { api, ApiError } from "@/lib/api-client";
 import { avatarColor, initials } from "@/lib/avatar-color";
 import { cn } from "@/lib/utils";
-import type { Person } from "@/lib/types";
+import type { JsonValue, Person } from "@/lib/types";
 import {
   extractString,
   PropertyEditor,
@@ -29,6 +29,8 @@ import {
 } from "./property-editor";
 
 const NAMED_FIELDS = ["email", "company"];
+// Not user-editable, but must survive a save since properties are replaced wholesale.
+const HIDDEN_FIELDS = ["self"];
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString(undefined, {
@@ -82,14 +84,21 @@ function PersonDetailForm({
   const [email, setEmail] = useState(() => extractString(person.properties, "email"));
   const [company, setCompany] = useState(() => extractString(person.properties, "company"));
   const [rows, setRows] = useState<PropertyRow[]>(() =>
-    propertiesToRows(person.properties, NAMED_FIELDS)
+    propertiesToRows(person.properties, [...NAMED_FIELDS, ...HIDDEN_FIELDS])
   );
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   function buildProperties() {
+    const hidden: Record<string, JsonValue> = {};
+    for (const key of HIDDEN_FIELDS) {
+      if (person.properties && key in person.properties) {
+        hidden[key] = person.properties[key];
+      }
+    }
     return {
+      ...hidden,
       ...(email.trim() ? { email: email.trim() } : {}),
       ...(company.trim() ? { company: company.trim() } : {}),
       ...rowsToProperties(rows),

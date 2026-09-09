@@ -3,8 +3,12 @@ import type {
   ApiUser,
   GenericObject,
   JsonValue,
+  Note,
+  NoteProperties,
   ObjectWithConnections,
   Person,
+  Project,
+  ProjectProperties,
   Relation,
   RelationType,
   Task,
@@ -103,6 +107,36 @@ export const api = {
         body: JSON.stringify(input),
       }),
     remove: (id: string) => request<Task>(`/api/tasks/${id}`, { method: "DELETE" }),
+  },
+  projects: {
+    list: () => request<Project[]>("/api/projects"),
+    get: (id: string) => request<Project>(`/api/projects/${id}`),
+    create: (input: { title: string; properties?: ProjectProperties }) =>
+      request<Project>("/api/projects", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    update: (id: string, input: { title?: string; properties?: ProjectProperties }) =>
+      request<Project>(`/api/projects/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(input),
+      }),
+    remove: (id: string) => request<Project>(`/api/projects/${id}`, { method: "DELETE" }),
+  },
+  notes: {
+    list: () => request<Note[]>("/api/notes"),
+    get: (id: string) => request<Note>(`/api/notes/${id}`),
+    create: (input: { title: string; properties: NoteProperties }) =>
+      request<Note>("/api/notes", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    update: (id: string, input: { title?: string; properties?: NoteProperties }) =>
+      request<Note>(`/api/notes/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(input),
+      }),
+    remove: (id: string) => request<Note>(`/api/notes/${id}`, { method: "DELETE" }),
   },
   relations: {
     create: (input: { sourceId: string; targetId: string; type: RelationType }) =>

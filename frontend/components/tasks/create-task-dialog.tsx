@@ -23,8 +23,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { api, ApiError } from "@/lib/api-client";
+import { ensureSelfPerson } from "@/lib/self-person";
 import { PRIORITY_LABEL, STATUS_LABEL } from "@/lib/task-meta";
-import type { Person, Task, TaskPriority, TaskStatus } from "@/lib/types";
+import type { GenericObject, Task, TaskPriority, TaskStatus } from "@/lib/types";
+import { useAuth } from "@/contexts/auth-context";
+import { NO_PROJECT, ProjectSelect } from "@/components/projects/project-select";
 import { AssigneeSelect, UNASSIGNED } from "./assignee-select";
 
 const NO_PRIORITY = "none";
@@ -38,12 +41,16 @@ export function CreateTaskDialog({
   onOpenChange: (open: boolean) => void;
   onCreated: (task: Task) => void;
 }) {
+  const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [status, setStatus] = useState<TaskStatus>("todo");
   const [priority, setPriority] = useState<TaskPriority | typeof NO_PRIORITY>(NO_PRIORITY);
   const [dueDate, setDueDate] = useState("");
   const [assigneeId, setAssigneeId] = useState(UNASSIGNED);
-  const [people, setPeople] = useState<Person[]>([]);
+  const [selectedAssignee, setSelectedAssignee] = useState<GenericObject | null>(null);
+  const [selfPerson, setSelfPerson] = useState<GenericObject | null>(null);
+  const [projectId, setProjectId] = useState(NO_PROJECT);
+  const [selectedProject, setSelectedProject] = useState<GenericObject | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -51,14 +58,26 @@ export function CreateTaskDialog({
     let cancelled = false;
     api.people
       .list()
-      .then((data) => {
-        if (!cancelled) setPeople(data);
+      .then(async (data) => {
+        if (cancelled) return;
+        const self = user ? await ensureSelfPerson(user, data) : null;
+        if (!cancelled) setSelfPerson(self);
       })
       .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [open]);
+  }, [open, user]);
+
+  function onAssigneePick(id: string, person: GenericObject | null) {
+    setAssigneeId(id);
+    setSelectedAssignee(person);
+  }
+
+  function onProjectPick(id: string, project: GenericObject | null) {
+    setProjectId(id);
+    setSelectedProject(project);
+  }
 
   function reset() {
     setTitle("");
@@ -66,6 +85,9 @@ export function CreateTaskDialog({
     setPriority(NO_PRIORITY);
     setDueDate("");
     setAssigneeId(UNASSIGNED);
+    setSelectedAssignee(null);
+    setProjectId(NO_PROJECT);
+    setSelectedProject(null);
   }
 
   async function onSubmit(event: FormEvent) {
@@ -86,6 +108,13 @@ export function CreateTaskDialog({
           await api.relations.create({ sourceId: task.id, targetId: assigneeId, type: "assigned_to" });
         } catch {
           toast.error("Task created, but couldn't set the assignee");
+        }
+      }
+      if (projectId !== NO_PROJECT) {
+        try {
+          await api.relations.create({ sourceId: projectId, targetId: task.id, type: "has_task" });
+        } catch {
+          toast.error("Task created, but couldn't link the project");
         }
       }
       onCreated(task);
@@ -128,7 +157,17 @@ export function CreateTaskDialog({
 
           <div className="flex flex-col gap-1.5">
             <Label>Assignee</Label>
-            <AssigneeSelect people={people} value={assigneeId} onChange={setAssigneeId} />
+            <AssigneeSelect
+              value={assigneeId}
+              selected={selectedAssignee}
+              selfPerson={selfPerson}
+              onChange={onAssigneePick}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label>Project</Label>
+            <ProjectSelect value={projectId} selected={selectedProject} onChange={onProjectPick} />
           </div>
 
           <div className="grid grid-cols-2 gap-3">

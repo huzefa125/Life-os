@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, CheckSquare, User as UserIcon } from "lucide-react";
+import { ArrowRight, CheckSquare, FileText, FolderKanban, User as UserIcon } from "lucide-react";
 
 import {
   Command,
@@ -20,6 +20,8 @@ import { navItems } from "./nav-items";
 const SEARCHABLE_TYPES: Record<string, { label: string; icon: typeof UserIcon; basePath: string }> = {
   person: { label: "People", icon: UserIcon, basePath: "/people" },
   task: { label: "Tasks", icon: CheckSquare, basePath: "/tasks" },
+  project: { label: "Projects", icon: FolderKanban, basePath: "/projects" },
+  note: { label: "Notes", icon: FileText, basePath: "/notes" },
 };
 
 export function CommandPalette({

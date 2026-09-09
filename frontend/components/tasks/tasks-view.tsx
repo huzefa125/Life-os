@@ -21,6 +21,7 @@ import {
 import { api, ApiError } from "@/lib/api-client";
 import { avatarColor, initials } from "@/lib/avatar-color";
 import { findAssignee } from "@/lib/relations";
+import { isSelf } from "@/lib/self-person";
 import { formatDueDate, isOverdue, PRIORITY_BADGE, PRIORITY_LABEL, STATUS_BADGE, STATUS_LABEL } from "@/lib/task-meta";
 import type { GenericObject, Task } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -255,7 +256,10 @@ export function TasksView() {
                               {initials(assigneeByTask[task.id]!.title)}
                             </AvatarFallback>
                           </Avatar>
-                          <span className="text-foreground/80">{assigneeByTask[task.id]!.title}</span>
+                          <span className="text-foreground/80">
+                            {assigneeByTask[task.id]!.title}
+                            {isSelf(assigneeByTask[task.id]!.properties) ? " (You)" : ""}
+                          </span>
                         </span>
                       ) : (
                         <span className="flex items-center gap-1.5 text-muted-foreground">

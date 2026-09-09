@@ -41,6 +41,36 @@ export interface Task {
   updatedAt: string;
 }
 
+export interface ProjectProperties {
+  status?: string;
+  description?: string;
+  deadline?: string;
+}
+
+export interface Project {
+  id: string;
+  userId: string;
+  type: "project";
+  title: string;
+  properties: ProjectProperties | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NoteProperties {
+  content: string;
+}
+
+export interface Note {
+  id: string;
+  userId: string;
+  type: "note";
+  title: string;
+  properties: NoteProperties | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface GenericObject {
   id: string;
   userId: string;
