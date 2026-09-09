@@ -1,7 +1,4 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
-import { z } from "zod";
-
-extendZodWithOpenApi(z);
+import "./lib/zod-openapi-setup";
 
 import { env } from "./config/env";
 import app from "./app";
