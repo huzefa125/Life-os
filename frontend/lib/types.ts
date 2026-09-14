@@ -71,6 +71,58 @@ export interface Note {
   updatedAt: string;
 }
 
+export interface EventProperties {
+  description?: string;
+  startAt: string;
+  endAt: string;
+  location?: string;
+}
+
+export interface CalendarEvent {
+  id: string;
+  userId: string;
+  type: "event";
+  title: string;
+  properties: EventProperties | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FileProperties {
+  url: string;
+  fileName: string;
+  mimeType: string;
+  size: number;
+}
+
+export interface StoredFile {
+  id: string;
+  userId: string;
+  type: "file";
+  title: string;
+  properties: FileProperties | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ExpenseProperties {
+  amount: number;
+  currency: string;
+  category: string;
+  date: string;
+  description?: string;
+}
+
+export interface Expense {
+  id: string;
+  userId: string;
+  type: "expense";
+  title: string;
+  properties: ExpenseProperties | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface GenericObject {
   id: string;
   userId: string;

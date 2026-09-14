@@ -1,6 +1,11 @@
 import { getToken } from "@/lib/auth-storage";
 import type {
   ApiUser,
+  CalendarEvent,
+  EventProperties,
+  Expense,
+  ExpenseProperties,
+  FileProperties,
   GenericObject,
   JsonValue,
   Note,
@@ -11,6 +16,7 @@ import type {
   ProjectProperties,
   Relation,
   RelationType,
+  StoredFile,
   Task,
   TaskProperties,
 } from "@/lib/types";
@@ -137,6 +143,49 @@ export const api = {
         body: JSON.stringify(input),
       }),
     remove: (id: string) => request<Note>(`/api/notes/${id}`, { method: "DELETE" }),
+  },
+  events: {
+    list: () => request<CalendarEvent[]>("/api/events"),
+    get: (id: string) => request<CalendarEvent>(`/api/events/${id}`),
+    create: (input: { title: string; properties: EventProperties }) =>
+      request<CalendarEvent>("/api/events", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    update: (id: string, input: { title?: string; properties?: Partial<EventProperties> }) =>
+      request<CalendarEvent>(`/api/events/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(input),
+      }),
+    remove: (id: string) => request<CalendarEvent>(`/api/events/${id}`, { method: "DELETE" }),
+  },
+  files: {
+    list: () => request<StoredFile[]>("/api/files"),
+    get: (id: string) => request<StoredFile>(`/api/files/${id}`),
+    create: (input: { properties: FileProperties }) =>
+      request<StoredFile>("/api/files", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    remove: (id: string) => request<StoredFile>(`/api/files/${id}`, { method: "DELETE" }),
+  },
+  expenses: {
+    list: () => request<Expense[]>("/api/expenses"),
+    get: (id: string) => request<Expense>(`/api/expenses/${id}`),
+    create: (input: { title: string; properties: ExpenseProperties }) =>
+      request<Expense>("/api/expenses", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    update: (id: string, input: { title?: string; properties?: Partial<ExpenseProperties> }) =>
+      request<Expense>(`/api/expenses/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(input),
+      }),
+    remove: (id: string) => request<Expense>(`/api/expenses/${id}`, { method: "DELETE" }),
+  },
+  timeline: {
+    list: () => request<GenericObject[]>("/api/timeline"),
   },
   relations: {
     create: (input: { sourceId: string; targetId: string; type: RelationType }) =>

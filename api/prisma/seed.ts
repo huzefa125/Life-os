@@ -1,3 +1,4 @@
+import bcrypt from "bcrypt";
 import { prisma } from "../src/db";
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
@@ -229,13 +230,24 @@ const EXPENSES: SeedRecord[] = [
 ];
 
 const ALL_RECORDS: SeedRecord[] = [...PEOPLE, ...TASKS, ...PROJECTS, ...NOTES, ...EVENTS, ...FILES, ...EXPENSES];
+const DEMO_USER = {
+  name: "Demo User",
+  email: "demo@lifeos.local",
+  password: "password123",
+};
+const SALT_ROUNDS = 10;
 
 async function main() {
-  const users = await prisma.user.findMany({ select: { id: true, email: true, name: true } });
+  let users = await prisma.user.findMany({ select: { id: true, email: true, name: true } });
 
   if (users.length === 0) {
-    console.log("No users found — register a user in the app first, then re-run the seed.");
-    return;
+    const password = await bcrypt.hash(DEMO_USER.password, SALT_ROUNDS);
+    const user = await prisma.user.create({
+      data: { name: DEMO_USER.name, email: DEMO_USER.email, password },
+      select: { id: true, email: true, name: true },
+    });
+    users = [user];
+    console.log(`Created demo user: ${DEMO_USER.email} / ${DEMO_USER.password}`);
   }
 
   for (const user of users) {
