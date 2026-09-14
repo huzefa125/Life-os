@@ -1,22 +1,27 @@
 import { prisma } from "../../db";
 import type { CreateFileBody } from "../../validation/file.validation";
+import { logActivity } from "../activity/activity.service";
 
 const FILE_TYPE = "file";
 
 export async function createFile(userId: string, input: CreateFileBody) {
-  return prisma.object.create({
+  const file = await prisma.object.create({
     data: {
       userId,
       type: FILE_TYPE,
       title: input.properties.fileName,
+      status: "active",
       properties: input.properties,
     },
   });
+
+  await logActivity(userId, file.id, "created", { title: file.title });
+  return file;
 }
 
 export async function getFilesByUser(userId: string) {
   return prisma.object.findMany({
-    where: { userId, type: FILE_TYPE },
+    where: { userId, type: FILE_TYPE, status: "active" },
     orderBy: { createdAt: "desc" },
   });
 }
@@ -33,6 +38,14 @@ export async function deleteFile(id: string, userId: string) {
   });
   if (!existing) return null;
 
-  await prisma.object.delete({ where: { id } });
-  return existing;
+  const trashed = await prisma.object.update({
+    where: { id },
+    data: {
+      status: "trash",
+      deletedAt: new Date(),
+    },
+  });
+
+  await logActivity(userId, id, "trashed");
+  return trashed;
 }

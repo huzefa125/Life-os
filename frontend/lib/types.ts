@@ -18,6 +18,9 @@ export interface Person {
   type: "person";
   title: string;
   properties: Record<string, JsonValue> | null;
+  tags?: string[];
+  status?: "active" | "archived" | "trash";
+  isFavorite?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -37,6 +40,9 @@ export interface Task {
   type: "task";
   title: string;
   properties: TaskProperties | null;
+  tags?: string[];
+  status?: "active" | "archived" | "trash";
+  isFavorite?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -53,6 +59,9 @@ export interface Project {
   type: "project";
   title: string;
   properties: ProjectProperties | null;
+  tags?: string[];
+  status?: "active" | "archived" | "trash";
+  isFavorite?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -67,6 +76,9 @@ export interface Note {
   type: "note";
   title: string;
   properties: NoteProperties | null;
+  tags?: string[];
+  status?: "active" | "archived" | "trash";
+  isFavorite?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -84,6 +96,9 @@ export interface CalendarEvent {
   type: "event";
   title: string;
   properties: EventProperties | null;
+  tags?: string[];
+  status?: "active" | "archived" | "trash";
+  isFavorite?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -101,6 +116,9 @@ export interface StoredFile {
   type: "file";
   title: string;
   properties: FileProperties | null;
+  tags?: string[];
+  status?: "active" | "archived" | "trash";
+  isFavorite?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -119,6 +137,9 @@ export interface Expense {
   type: "expense";
   title: string;
   properties: ExpenseProperties | null;
+  tags?: string[];
+  status?: "active" | "archived" | "trash";
+  isFavorite?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -129,8 +150,76 @@ export interface GenericObject {
   type: string;
   title: string;
   properties: Record<string, JsonValue> | null;
+  tags?: string[];
+  status?: "active" | "archived" | "trash";
+  isFavorite?: boolean;
+  archivedAt?: string | null;
+  deletedAt?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export type BlockType = "text" | "heading" | "todo" | "bullet" | "quote" | "code";
+
+export interface Block {
+  id: string;
+  type: BlockType;
+  content: string;
+  level?: 1 | 2 | 3;
+  checked?: boolean;
+  language?: string;
+}
+
+export interface PageProperties {
+  blocks: Block[];
+}
+
+export interface Page {
+  id: string;
+  userId: string;
+  type: "page";
+  title: string;
+  tags?: string[];
+  status?: "active" | "archived" | "trash";
+  isFavorite?: boolean;
+  properties: PageProperties | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ActivityItem {
+  id: string;
+  action: string;
+  details: Record<string, JsonValue> | null;
+  createdAt: string;
+}
+
+export interface DetailedObject {
+  object: GenericObject & { isFavorite: boolean };
+  relations: Array<{
+    id: string;
+    type: string;
+    direction: "outgoing" | "incoming";
+    otherObject: GenericObject;
+  }>;
+  files: Array<{
+    id: string;
+    title: string;
+    properties: FileProperties | Record<string, JsonValue> | null;
+    relationId?: string;
+  }>;
+  activities: ActivityItem[];
+}
+
+export interface FavoriteItem extends GenericObject {
+  favoriteId: string;
+  favoritedAt: string;
+  isFavorite: true;
+}
+
+export interface TagItem {
+  tag: string;
+  count: number;
 }
 
 export type RelationType =

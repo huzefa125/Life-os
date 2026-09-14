@@ -2,21 +2,26 @@ import { getToken } from "@/lib/auth-storage";
 import type {
   ApiUser,
   CalendarEvent,
+  DetailedObject,
   EventProperties,
   Expense,
   ExpenseProperties,
+  FavoriteItem,
   FileProperties,
   GenericObject,
   JsonValue,
   Note,
   NoteProperties,
   ObjectWithConnections,
+  Page,
+  PageProperties,
   Person,
   Project,
   ProjectProperties,
   Relation,
   RelationType,
   StoredFile,
+  TagItem,
   Task,
   TaskProperties,
 } from "@/lib/types";
@@ -197,6 +202,74 @@ export const api = {
   },
   objects: {
     connections: (id: string) => request<ObjectWithConnections>(`/api/objects/${id}/connections`),
+    detail: (id: string) => request<DetailedObject>(`/api/objects/${id}/detail`),
+  },
+  pages: {
+    list: (tag?: string) => {
+      const params = tag ? `?tag=${encodeURIComponent(tag)}` : "";
+      return request<Page[]>(`/api/pages${params}`);
+    },
+    get: (id: string) => request<Page>(`/api/pages/${id}`),
+    create: (input: { title: string; properties?: PageProperties; tags?: string[] }) =>
+      request<Page>("/api/pages", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    update: (id: string, input: { title?: string; properties?: PageProperties; tags?: string[] }) =>
+      request<Page>(`/api/pages/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(input),
+      }),
+    remove: (id: string) => request<{ message: string }>(`/api/pages/${id}`, { method: "DELETE" }),
+  },
+  favorites: {
+    list: () => request<FavoriteItem[]>("/api/favorites"),
+    add: (objectId: string) =>
+      request<FavoriteItem>("/api/favorites", {
+        method: "POST",
+        body: JSON.stringify({ objectId }),
+      }),
+    remove: (idOrObjectId: string) =>
+      request<{ message: string }>(`/api/favorites/${idOrObjectId}`, { method: "DELETE" }),
+  },
+  archive: {
+    list: () => request<GenericObject[]>("/api/archive"),
+    archive: (id: string) =>
+      request<GenericObject>(`/api/archive/${id}`, {
+        method: "POST",
+      }),
+    restore: (id: string) =>
+      request<GenericObject>(`/api/archive/${id}/restore`, {
+        method: "POST",
+      }),
+  },
+  trash: {
+    list: () => request<GenericObject[]>("/api/trash"),
+    move: (id: string) =>
+      request<GenericObject>(`/api/trash/${id}`, {
+        method: "POST",
+      }),
+    restore: (id: string) =>
+      request<GenericObject>(`/api/trash/${id}/restore`, {
+        method: "POST",
+      }),
+    permanentDelete: (id: string) =>
+      request<{ message: string }>(`/api/trash/${id}`, {
+        method: "DELETE",
+      }),
+    empty: () =>
+      request<{ count: number; message: string }>("/api/trash", {
+        method: "DELETE",
+      }),
+  },
+  tags: {
+    list: () => request<TagItem[]>("/api/tags"),
+    getObjects: (tag: string) => request<GenericObject[]>(`/api/tags/${encodeURIComponent(tag)}`),
+    update: (id: string, tags: string[]) =>
+      request<GenericObject>(`/api/tags/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ tags }),
+      }),
   },
   search: {
     query: (q: string, type?: string) => {

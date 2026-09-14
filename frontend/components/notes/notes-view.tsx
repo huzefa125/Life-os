@@ -20,6 +20,7 @@ import { api, ApiError } from "@/lib/api-client";
 import type { Note } from "@/lib/types";
 import { CreateNoteDialog } from "./create-note-dialog";
 import { NoteDetailSheet } from "./note-detail-sheet";
+import { FavoriteButton } from "@/components/favorites/favorite-button";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { dateStyle: "medium" });
@@ -178,7 +179,15 @@ export function NotesView() {
                   className="cursor-pointer border-border/70"
                   onClick={() => openNote(note)}
                 >
-                  <TableCell className="py-2 pl-0 text-[13px] font-medium">{note.title}</TableCell>
+                  <TableCell className="py-2 pl-0 text-[13px] font-medium">
+                    <div className="flex items-center gap-1.5">
+                      <FavoriteButton
+                        objectId={note.id}
+                        initialFavorite={note.isFavorite ?? false}
+                      />
+                      <span>{note.title}</span>
+                    </div>
+                  </TableCell>
                   <TableCell className="max-w-sm truncate text-[13px] text-muted-foreground">
                     {note.properties?.content ?? "—"}
                   </TableCell>

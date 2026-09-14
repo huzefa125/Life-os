@@ -27,8 +27,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { NO_PROJECT, ProjectSelect } from "@/components/projects/project-select";
 import { api, ApiError } from "@/lib/api-client";
-import type { CalendarEvent, EventProperties } from "@/lib/types";
+import { findParentProject } from "@/lib/relations";
+import type { CalendarEvent, EventProperties, GenericObject } from "@/lib/types";
 
 function toLocalInput(iso?: string) {
   if (!iso) return "";
@@ -298,11 +300,15 @@ function CreateEventDialog({
 }) {
   const [title, setTitle] = useState("");
   const [properties, setProperties] = useState<EventProperties>(initialEventProperties);
+  const [projectId, setProjectId] = useState(NO_PROJECT);
+  const [selectedProject, setSelectedProject] = useState<GenericObject | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   function reset() {
     setTitle("");
     setProperties(initialEventProperties());
+    setProjectId(NO_PROJECT);
+    setSelectedProject(null);
   }
 
   async function onSubmit(event: React.FormEvent) {
@@ -310,6 +316,13 @@ function CreateEventDialog({
     setSubmitting(true);
     try {
       const created = await api.events.create({ title: title.trim(), properties });
+      if (projectId !== NO_PROJECT) {
+        try {
+          await api.relations.create({ sourceId: projectId, targetId: created.id, type: "has_event" });
+        } catch {
+          toast.error("Event created, but couldn't link the project");
+        }
+      }
       onCreated(created);
       toast.success(`${created.title} added`);
       reset();
@@ -329,6 +342,17 @@ function CreateEventDialog({
             <DialogTitle>New event</DialogTitle>
             <DialogDescription>Add something scheduled.</DialogDescription>
           </DialogHeader>
+          <div className="flex flex-col gap-1.5">
+            <Label>Project</Label>
+            <ProjectSelect
+              value={projectId}
+              selected={selectedProject}
+              onChange={(id, project) => {
+                setProjectId(id);
+                setSelectedProject(project);
+              }}
+            />
+          </div>
           <EventFields title={title} setTitle={setTitle} properties={properties} setProperties={setProperties} />
           <DialogFooter>
             <Button type="submit" disabled={submitting || !title.trim()}>
@@ -377,14 +401,61 @@ function EventDetailForm({
 }) {
   const [title, setTitle] = useState(event.title);
   const [properties, setProperties] = useState<EventProperties>(event.properties ?? initialEventProperties());
+  const [projectId, setProjectId] = useState(NO_PROJECT);
+  const [loadedProjectId, setLoadedProjectId] = useState(NO_PROJECT);
+  const [selectedProject, setSelectedProject] = useState<GenericObject | null>(null);
+  const [projectRelationId, setProjectRelationId] = useState<string | null>(null);
+  const [projectLoading, setProjectLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.objects
+      .connections(event.id)
+      .then((connections) => {
+        if (cancelled) return;
+        const parent = findParentProject(connections.connections, "has_event");
+        if (parent) {
+          setProjectId(parent.project.id);
+          setLoadedProjectId(parent.project.id);
+          setProjectRelationId(parent.relationId);
+          setSelectedProject(parent.project);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) toast.error("Couldn't load project link");
+      })
+      .finally(() => {
+        if (!cancelled) setProjectLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [event.id]);
 
   async function onSave() {
     setSaving(true);
     try {
       const updated = await api.events.update(event.id, { title: title.trim(), properties });
       onUpdated(updated);
+      if (projectId !== loadedProjectId) {
+        if (projectRelationId) {
+          await api.relations.remove(projectRelationId);
+        }
+        const nextRelationId =
+          projectId !== NO_PROJECT
+            ? (
+                await api.relations.create({
+                  sourceId: projectId,
+                  targetId: event.id,
+                  type: "has_event",
+                })
+              ).id
+            : null;
+        setProjectRelationId(nextRelationId);
+        setLoadedProjectId(projectId);
+      }
       toast.success("Saved");
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : "Couldn't save event");
@@ -407,7 +478,10 @@ function EventDetailForm({
     }
   }
 
-  const dirty = title.trim() !== event.title || JSON.stringify(properties) !== JSON.stringify(event.properties ?? {});
+  const dirty =
+    title.trim() !== event.title ||
+    JSON.stringify(properties) !== JSON.stringify(event.properties ?? {}) ||
+    projectId !== loadedProjectId;
 
   return (
     <>
@@ -417,6 +491,18 @@ function EventDetailForm({
       </SheetHeader>
       <div className="flex-1 overflow-y-auto px-4 py-4">
         <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <Label>Project</Label>
+            <ProjectSelect
+              value={projectId}
+              selected={selectedProject}
+              disabled={projectLoading || saving}
+              onChange={(id, project) => {
+                setProjectId(id);
+                setSelectedProject(project);
+              }}
+            />
+          </div>
           <EventFields title={title} setTitle={setTitle} properties={properties} setProperties={setProperties} />
         </div>
         <div className="mt-6 text-xs text-muted-foreground">Updated {formatDateTime(event.updatedAt)}</div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckSquare, FileText, Trash2 } from "lucide-react";
+import { CalendarDays, CheckSquare, FileText, Paperclip, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -90,6 +90,8 @@ function ProjectDetailForm({
 
   const [linkedTasks, setLinkedTasks] = useState<GenericObject[]>([]);
   const [linkedNotes, setLinkedNotes] = useState<GenericObject[]>([]);
+  const [linkedEvents, setLinkedEvents] = useState<GenericObject[]>([]);
+  const [linkedFiles, setLinkedFiles] = useState<GenericObject[]>([]);
   const [linkedLoading, setLinkedLoading] = useState(true);
 
   useEffect(() => {
@@ -106,6 +108,16 @@ function ProjectDetailForm({
         setLinkedNotes(
           data.connections
             .filter((c) => c.relation.type === "has_note" && c.relation.direction === "outgoing")
+            .map((c) => c.object)
+        );
+        setLinkedEvents(
+          data.connections
+            .filter((c) => c.relation.type === "has_event" && c.relation.direction === "outgoing")
+            .map((c) => c.object)
+        );
+        setLinkedFiles(
+          data.connections
+            .filter((c) => c.relation.type === "has_file" && c.relation.direction === "outgoing")
             .map((c) => c.object)
         );
       })
@@ -283,6 +295,62 @@ function ProjectDetailForm({
                   className="flex items-center gap-2 border-b px-2.5 py-2 text-left text-sm last:border-b-0 hover:bg-muted/50"
                 >
                   <span className="truncate">{note.title}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="mt-4 flex flex-col gap-1.5">
+          <Label className="flex items-center gap-1.5">
+            <CalendarDays className="size-3.5" />
+            Events
+            {!linkedLoading ? (
+              <span className="text-muted-foreground">({linkedEvents.length})</span>
+            ) : null}
+          </Label>
+          {linkedLoading ? (
+            <p className="text-sm text-muted-foreground">Loadingâ€¦</p>
+          ) : linkedEvents.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No events linked yet.</p>
+          ) : (
+            <div className="flex flex-col gap-1 rounded-lg border">
+              {linkedEvents.map((event) => (
+                <button
+                  key={event.id}
+                  type="button"
+                  onClick={() => goTo(`/events?focus=${event.id}`)}
+                  className="flex items-center gap-2 border-b px-2.5 py-2 text-left text-sm last:border-b-0 hover:bg-muted/50"
+                >
+                  <span className="truncate">{event.title}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="mt-4 flex flex-col gap-1.5">
+          <Label className="flex items-center gap-1.5">
+            <Paperclip className="size-3.5" />
+            Files
+            {!linkedLoading ? (
+              <span className="text-muted-foreground">({linkedFiles.length})</span>
+            ) : null}
+          </Label>
+          {linkedLoading ? (
+            <p className="text-sm text-muted-foreground">Loadingâ€¦</p>
+          ) : linkedFiles.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No files linked yet.</p>
+          ) : (
+            <div className="flex flex-col gap-1 rounded-lg border">
+              {linkedFiles.map((file) => (
+                <button
+                  key={file.id}
+                  type="button"
+                  onClick={() => goTo(`/files?focus=${file.id}`)}
+                  className="flex items-center gap-2 border-b px-2.5 py-2 text-left text-sm last:border-b-0 hover:bg-muted/50"
+                >
+                  <span className="truncate">{file.title}</span>
                 </button>
               ))}
             </div>

@@ -27,7 +27,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { api, ApiError } from "@/lib/api-client";
-import type { FileProperties, StoredFile } from "@/lib/types";
+import { NO_PROJECT, ProjectSelect } from "@/components/projects/project-select";
+import { findParentProject } from "@/lib/relations";
+import type { FileProperties, GenericObject, StoredFile } from "@/lib/types";
 
 function formatBytes(bytes?: number) {
   if (!bytes) return "-";
@@ -210,10 +212,14 @@ function CreateFileDialog({
     mimeType: "",
     size: 1,
   });
+  const [projectId, setProjectId] = useState(NO_PROJECT);
+  const [selectedProject, setSelectedProject] = useState<GenericObject | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   function reset() {
     setProperties({ url: "", fileName: "", mimeType: "", size: 1 });
+    setProjectId(NO_PROJECT);
+    setSelectedProject(null);
   }
 
   async function onSubmit(event: React.FormEvent) {
@@ -229,6 +235,13 @@ function CreateFileDialog({
           size: Number(properties.size),
         },
       });
+      if (projectId !== NO_PROJECT) {
+        try {
+          await api.relations.create({ sourceId: projectId, targetId: file.id, type: "has_file" });
+        } catch {
+          toast.error("File created, but couldn't link the project");
+        }
+      }
       onCreated(file);
       toast.success(`${file.title} added`);
       reset();
@@ -251,6 +264,17 @@ function CreateFileDialog({
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="file-name">Name</Label>
             <Input id="file-name" value={properties.fileName} onChange={(event) => setProperties({ ...properties, fileName: event.target.value })} required />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>Project</Label>
+            <ProjectSelect
+              value={projectId}
+              selected={selectedProject}
+              onChange={(id, project) => {
+                setProjectId(id);
+                setSelectedProject(project);
+              }}
+            />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="file-url">URL</Label>
@@ -289,6 +313,46 @@ function FileDetailSheet({
   onDeleted: (id: string) => void;
 }) {
   const [deleting, setDeleting] = useState(false);
+  const [savingProject, setSavingProject] = useState(false);
+  const [projectId, setProjectId] = useState(NO_PROJECT);
+  const [loadedProjectId, setLoadedProjectId] = useState(NO_PROJECT);
+  const [selectedProject, setSelectedProject] = useState<GenericObject | null>(null);
+  const [projectRelationId, setProjectRelationId] = useState<string | null>(null);
+  const [projectLoading, setProjectLoading] = useState(true);
+
+  useEffect(() => {
+    if (!file) return;
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setProjectLoading(true);
+      setProjectId(NO_PROJECT);
+      setLoadedProjectId(NO_PROJECT);
+      setSelectedProject(null);
+      setProjectRelationId(null);
+    });
+    api.objects
+      .connections(file.id)
+      .then((connections) => {
+        if (cancelled) return;
+        const parent = findParentProject(connections.connections, "has_file");
+        if (parent) {
+          setProjectId(parent.project.id);
+          setLoadedProjectId(parent.project.id);
+          setProjectRelationId(parent.relationId);
+          setSelectedProject(parent.project);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) toast.error("Couldn't load project link");
+      })
+      .finally(() => {
+        if (!cancelled) setProjectLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [file]);
 
   async function onDelete() {
     if (!file) return;
@@ -305,6 +369,33 @@ function FileDetailSheet({
     }
   }
 
+  async function onSaveProject() {
+    if (!file || projectId === loadedProjectId) return;
+    setSavingProject(true);
+    try {
+      if (projectRelationId) {
+        await api.relations.remove(projectRelationId);
+      }
+      const nextRelationId =
+        projectId !== NO_PROJECT
+          ? (
+              await api.relations.create({
+                sourceId: projectId,
+                targetId: file.id,
+                type: "has_file",
+              })
+            ).id
+          : null;
+      setProjectRelationId(nextRelationId);
+      setLoadedProjectId(projectId);
+      toast.success("Project link saved");
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Couldn't save project link");
+    } finally {
+      setSavingProject(false);
+    }
+  }
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="flex flex-col gap-0 sm:max-w-md">
@@ -314,6 +405,18 @@ function FileDetailSheet({
               <SheetTitle>{file.title}</SheetTitle>
             </SheetHeader>
             <div className="flex-1 overflow-y-auto px-4 py-4">
+              <div className="mb-4 flex flex-col gap-1.5">
+                <Label>Project</Label>
+                <ProjectSelect
+                  value={projectId}
+                  selected={selectedProject}
+                  disabled={projectLoading || savingProject}
+                  onChange={(id, project) => {
+                    setProjectId(id);
+                    setSelectedProject(project);
+                  }}
+                />
+              </div>
               <dl className="grid grid-cols-[88px_1fr] gap-x-3 gap-y-3 text-sm">
                 <dt className="text-muted-foreground">URL</dt>
                 <dd className="min-w-0">
@@ -334,6 +437,9 @@ function FileDetailSheet({
               <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 hover:text-destructive" disabled={deleting} onClick={onDelete}>
                 <Trash2 className="size-3.5" />
                 {deleting ? "Deleting..." : "Delete"}
+              </Button>
+              <Button size="sm" disabled={savingProject || projectId === loadedProjectId} onClick={onSaveProject}>
+                {savingProject ? "Saving..." : "Save link"}
               </Button>
             </SheetFooter>
           </>
