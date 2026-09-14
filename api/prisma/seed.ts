@@ -229,7 +229,59 @@ const EXPENSES: SeedRecord[] = [
   },
 ];
 
-const ALL_RECORDS: SeedRecord[] = [...PEOPLE, ...TASKS, ...PROJECTS, ...NOTES, ...EVENTS, ...FILES, ...EXPENSES];
+const PAGES: (SeedRecord & { tags?: string[] })[] = [
+  {
+    type: "page",
+    title: "LifeOS Architecture & Specs",
+    tags: ["work", "project"],
+    properties: {
+      blocks: [
+        {
+          id: "b-1",
+          type: "heading",
+          content: "LifeOS Phase 2",
+        },
+        {
+          id: "b-2",
+          type: "text",
+          content: "Unified Operating System with Notion-style Pages, Blocks, Tags, and Relations.",
+        },
+        {
+          id: "b-3",
+          type: "todo",
+          content: "Complete block editor implementation",
+          checked: true,
+        },
+        {
+          id: "b-4",
+          type: "bullet",
+          content: "Interactive Notion-style blocks (heading, text, todo, bullet, quote, code)",
+        },
+        {
+          id: "b-5",
+          type: "quote",
+          content: "Simplicity is prerequisite for reliability. — Edsger Dijkstra",
+        },
+        {
+          id: "b-6",
+          type: "code",
+          content: "console.log('LifeOS is running');",
+        },
+      ],
+    },
+  },
+];
+
+const ALL_RECORDS: (SeedRecord & { tags?: string[] })[] = [
+  ...PEOPLE,
+  ...TASKS,
+  ...PROJECTS,
+  ...NOTES,
+  ...EVENTS,
+  ...FILES,
+  ...EXPENSES,
+  ...PAGES,
+];
 const DEMO_USER = {
   name: "Demo User",
   email: "demo@lifeos.local",
@@ -269,6 +321,8 @@ async function main() {
         userId: user.id,
         type: r.type,
         title: r.title,
+        status: "active",
+        tags: r.tags ?? [],
         properties: r.properties,
       })),
     });
