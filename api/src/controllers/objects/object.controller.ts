@@ -23,3 +23,20 @@ export async function getObjectConnections(req: Request, res: Response) {
 
   return sendSuccess(res, result);
 }
+
+export async function getObjectDetail(req: Request, res: Response) {
+  const paramsParsed = objectIdParamSchema.safeParse(req.params);
+  if (!paramsParsed.success) {
+    return sendError(res, formatZodError(paramsParsed.error), 400);
+  }
+
+  const result = await objectService.getObjectDetail(
+    paramsParsed.data.id,
+    req.userId as string
+  );
+  if (!result) {
+    return sendError(res, "Object not found", 404);
+  }
+
+  return sendSuccess(res, result);
+}

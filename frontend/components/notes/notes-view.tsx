@@ -21,6 +21,7 @@ import { findParentProject } from "@/lib/relations";
 import type { GenericObject, Note } from "@/lib/types";
 import { CreateNoteDialog } from "./create-note-dialog";
 import { NoteDetailSheet } from "./note-detail-sheet";
+import { FavoriteButton } from "@/components/favorites/favorite-button";
 
 export function NotesView() {
   const router = useRouter();
@@ -197,8 +198,16 @@ export function NotesView() {
                   className="cursor-pointer border-border/70"
                   onClick={() => openNote(note)}
                 >
-                  <TableCell className="py-2 pl-0 text-[13px] font-medium">{note.title}</TableCell>
-                  <TableCell className="max-w-md truncate text-[13px] text-muted-foreground">
+                  <TableCell className="py-2 pl-0 text-[13px] font-medium">
+                    <div className="flex items-center gap-1.5">
+                      <FavoriteButton
+                        objectId={note.id}
+                        initialFavorite={note.isFavorite ?? false}
+                      />
+                      <span>{note.title}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="max-w-sm truncate text-[13px] text-muted-foreground">
                     {note.properties?.content ?? "—"}
                   </TableCell>
                   <TableCell className="pr-0 text-[13px]">

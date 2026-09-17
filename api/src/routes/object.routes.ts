@@ -7,5 +7,6 @@ const router = Router();
 router.use(authMiddleware);
 
 router.get("/:id/connections", objectController.getObjectConnections);
+router.get("/:id/detail", objectController.getObjectDetail);
 
 export default router;

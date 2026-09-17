@@ -1,24 +1,57 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { History, Search } from "lucide-react";
+import {
+  CalendarDays,
+  CheckSquare,
+  FileText,
+  FolderKanban,
+  History,
+  Paperclip,
+  Receipt,
+  Search,
+  User,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api, ApiError } from "@/lib/api-client";
-import { OBJECT_TYPE_META } from "@/lib/type-meta";
 import type { GenericObject } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-export function TimelineView() {
-  const router = useRouter();
+const TYPE_META = {
+  person: { label: "Person", icon: User, color: "bg-violet-100 text-violet-600" },
+  task: { label: "Task", icon: CheckSquare, color: "bg-emerald-100 text-emerald-600" },
+  project: { label: "Project", icon: FolderKanban, color: "bg-blue-100 text-blue-600" },
+  note: { label: "Note", icon: FileText, color: "bg-amber-100 text-amber-600" },
+  event: { label: "Event", icon: CalendarDays, color: "bg-rose-100 text-rose-600" },
+  file: { label: "File", icon: Paperclip, color: "bg-cyan-100 text-cyan-600" },
+  expense: { label: "Expense", icon: Receipt, color: "bg-lime-100 text-lime-700" },
+};
 
+function formatDateTime(iso: string) {
+  return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+}
+
+function metaFor(type: string) {
+  return TYPE_META[type as keyof typeof TYPE_META] ?? { label: type, icon: History, color: "bg-slate-100 text-slate-600" };
+}
+
+function summarize(item: GenericObject) {
+  const properties = item.properties ?? {};
+  if (item.type === "task" && typeof properties.status === "string") return properties.status.replaceAll("_", " ");
+  if (item.type === "expense" && typeof properties.amount === "number") return `${properties.currency ?? ""} ${properties.amount}`;
+  if (item.type === "event" && typeof properties.startAt === "string") return formatDateTime(properties.startAt);
+  if (item.type === "file" && typeof properties.mimeType === "string") return properties.mimeType;
+  if (item.type === "note" && typeof properties.content === "string") return properties.content;
+  return "Created";
+}
+
+export function TimelineView() {
   const [items, setItems] = useState<GenericObject[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
-  const [typeFilter, setTypeFilter] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -27,9 +60,7 @@ export function TimelineView() {
       .then((data) => {
         if (!cancelled) setItems(data);
       })
-      .catch((error) => {
-        toast.error(error instanceof ApiError ? error.message : "Couldn't load timeline");
-      })
+      .catch((error) => toast.error(error instanceof ApiError ? error.message : "Couldn't load timeline"))
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
@@ -38,25 +69,16 @@ export function TimelineView() {
     };
   }, []);
 
-  const presentTypes = useMemo(() => {
-    const set = new Set(items.map((i) => i.type));
-    return Object.keys(OBJECT_TYPE_META).filter((t) => set.has(t));
-  }, [items]);
-
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();
-    return items.filter((item) => {
-      if (typeFilter && item.type !== typeFilter) return false;
-      if (!q) return true;
-      return item.title.toLowerCase().includes(q);
-    });
-  }, [filter, typeFilter, items]);
-
-  function openItem(item: GenericObject) {
-    const meta = OBJECT_TYPE_META[item.type];
-    if (!meta) return;
-    router.push(`${meta.basePath}?focus=${item.id}`);
-  }
+    if (!q) return items;
+    return items.filter(
+      (item) =>
+        item.title.toLowerCase().includes(q) ||
+        item.type.toLowerCase().includes(q) ||
+        summarize(item).toLowerCase().includes(q)
+    );
+  }, [filter, items]);
 
   return (
     <div className="flex min-h-full flex-col bg-background">
@@ -65,62 +87,28 @@ export function TimelineView() {
           <History className="size-3" />
         </div>
         <h1 className="text-[15px] font-semibold">Timeline</h1>
-        {!loading ? (
-          <span className="flex items-center gap-1 text-[13px] text-muted-foreground">
-            {items.length}
-          </span>
-        ) : null}
+        {!loading ? <span className="text-[13px] text-muted-foreground">{items.length}</span> : null}
+      </div>
 
+      <div className="flex items-center gap-1.5 border-y bg-canvas px-6 py-1.5">
+        <History className="size-3.5 text-muted-foreground" />
+        <span className="text-[13px] font-medium text-foreground/80">Recent Activity</span>
         <div className="relative ml-auto">
           <Search className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search"
             value={filter}
             onChange={(event) => setFilter(event.target.value)}
-            className="h-7 w-44 pl-7 text-[13px] shadow-none"
+            className="h-7 w-44 border-none bg-transparent pl-7 text-[13px] shadow-none focus-visible:ring-0"
           />
         </div>
       </div>
 
-      {presentTypes.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-1.5 border-y bg-canvas px-6 py-2">
-          <button
-            type="button"
-            onClick={() => setTypeFilter(null)}
-            className={cn(
-              "rounded-full px-2.5 py-1 text-[12px] font-medium transition-colors",
-              typeFilter === null ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted"
-            )}
-          >
-            All
-          </button>
-          {presentTypes.map((type) => {
-            const meta = OBJECT_TYPE_META[type];
-            const Icon = meta.icon;
-            const active = typeFilter === type;
-            return (
-              <button
-                key={type}
-                type="button"
-                onClick={() => setTypeFilter(active ? null : type)}
-                className={cn(
-                  "flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-medium transition-colors",
-                  active ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted"
-                )}
-              >
-                <Icon className={cn("size-3", !active && meta.color)} />
-                {meta.label}
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
-
       <div className="px-6 py-4">
         {loading ? (
-          <div className="flex flex-col gap-2">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <Skeleton key={i} className="h-9 w-full" />
+          <div className="flex flex-col gap-3">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <Skeleton key={index} className="h-12 w-full" />
             ))}
           </div>
         ) : filtered.length === 0 ? (
@@ -128,40 +116,29 @@ export function TimelineView() {
             <div className="flex size-11 items-center justify-center rounded-full bg-slate-100">
               <History className="size-5 text-slate-600" />
             </div>
-            {items.length === 0 ? (
-              <div>
-                <p className="text-sm font-medium">Nothing yet</p>
-                <p className="text-sm text-muted-foreground">
-                  Everything you create shows up here, most recent first.
-                </p>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No matches.</p>
-            )}
+            <p className="text-sm text-muted-foreground">
+              {items.length === 0 ? "No activity yet." : `No timeline items match "${filter}".`}
+            </p>
           </div>
         ) : (
-          <div className="flex flex-col">
+          <div className="relative flex flex-col gap-1">
             {filtered.map((item) => {
-              const meta = OBJECT_TYPE_META[item.type];
-              const Icon = meta?.icon ?? History;
+              const meta = metaFor(item.type);
+              const Icon = meta.icon;
               return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => openItem(item)}
-                  className="flex items-center gap-3 border-b px-2 py-2.5 text-left last:border-b-0 hover:bg-muted/50"
-                >
-                  <div
-                    className={cn(
-                      "flex size-7 shrink-0 items-center justify-center rounded-md bg-muted",
-                      meta?.color
-                    )}
-                  >
+                <div key={item.id} className="grid grid-cols-[28px_1fr_auto] items-start gap-3 border-b border-border/70 py-3 last:border-b-0">
+                  <div className={cn("mt-0.5 flex size-7 items-center justify-center rounded-md", meta.color)}>
                     <Icon className="size-3.5" />
                   </div>
-                  <span className="flex-1 truncate text-[13px] font-medium">{item.title}</span>
-                  <span className="text-[12px] text-muted-foreground">{meta?.label ?? item.type}</span>
-                </button>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-[13px] font-medium">{item.title}</p>
+                      <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">{meta.label}</span>
+                    </div>
+                    <p className="mt-1 truncate text-[13px] text-muted-foreground">{summarize(item)}</p>
+                  </div>
+                  <time className="whitespace-nowrap text-right text-[12px] text-muted-foreground">{formatDateTime(item.createdAt)}</time>
+                </div>
               );
             })}
           </div>

@@ -26,7 +26,8 @@ import {
 import type { Project } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { CreateProjectDialog } from "./create-project-dialog";
-import { ProjectDetailSheet } from "./project-detail-sheet";
+import { ObjectDetailSheet } from "@/components/objects/object-detail-sheet";
+import { FavoriteButton } from "@/components/favorites/favorite-button";
 
 export function ProjectsView() {
   const router = useRouter();
@@ -194,7 +195,13 @@ export function ProjectsView() {
                     onClick={() => openProject(project)}
                   >
                     <TableCell className="py-2 pl-0 text-[13px] font-medium">
-                      {project.title}
+                      <div className="flex items-center gap-1.5">
+                        <FavoriteButton
+                          objectId={project.id}
+                          initialFavorite={project.isFavorite ?? false}
+                        />
+                        <span>{project.title}</span>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <span
@@ -226,11 +233,11 @@ export function ProjectsView() {
       </div>
 
       <CreateProjectDialog open={createOpen} onOpenChange={setCreateOpen} onCreated={handleCreated} />
-      <ProjectDetailSheet
-        project={selected}
+      <ObjectDetailSheet
+        objectId={selected?.id ?? null}
         open={detailOpen}
         onOpenChange={setDetailOpen}
-        onUpdated={handleUpdated}
+        onUpdated={(updated) => handleUpdated(updated as Project)}
         onDeleted={handleDeleted}
       />
     </div>

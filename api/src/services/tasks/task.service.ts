@@ -1,15 +1,17 @@
 import { prisma } from "../../db";
 import type { CreateTaskBody, UpdateTaskBody } from "../../validation/task.validation";
+import { logActivity } from "../activity/activity.service";
 
 const TASK_TYPE = "task";
 const DEFAULT_STATUS = "todo";
 
 export async function createTask(userId: string, input: CreateTaskBody) {
-  return prisma.object.create({
+  const task = await prisma.object.create({
     data: {
       userId,
       type: TASK_TYPE,
       title: input.title,
+      status: "active",
       properties: {
         status: input.properties?.status ?? DEFAULT_STATUS,
         ...(input.properties?.priority !== undefined ? { priority: input.properties.priority } : {}),
@@ -18,11 +20,14 @@ export async function createTask(userId: string, input: CreateTaskBody) {
       },
     },
   });
+
+  await logActivity(userId, task.id, "created", { title: task.title });
+  return task;
 }
 
 export async function getTasksByUser(userId: string) {
   return prisma.object.findMany({
-    where: { userId, type: TASK_TYPE },
+    where: { userId, type: TASK_TYPE, status: "active" },
     orderBy: { createdAt: "desc" },
   });
 }
@@ -40,13 +45,16 @@ export async function updateTask(id: string, userId: string, input: UpdateTaskBo
   if (!existing) return null;
 
   // properties, when provided, replaces the JSON blob wholesale (no deep merge)
-  return prisma.object.update({
+  const updated = await prisma.object.update({
     where: { id },
     data: {
       ...(input.title !== undefined ? { title: input.title } : {}),
       ...(input.properties !== undefined ? { properties: input.properties } : {}),
     },
   });
+
+  await logActivity(userId, id, "updated");
+  return updated;
 }
 
 export async function deleteTask(id: string, userId: string) {
@@ -55,6 +63,14 @@ export async function deleteTask(id: string, userId: string) {
   });
   if (!existing) return null;
 
-  await prisma.object.delete({ where: { id } });
-  return existing;
+  const trashed = await prisma.object.update({
+    where: { id },
+    data: {
+      status: "trash",
+      deletedAt: new Date(),
+    },
+  });
+
+  await logActivity(userId, id, "trashed");
+  return trashed;
 }

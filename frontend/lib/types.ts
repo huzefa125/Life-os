@@ -17,6 +17,11 @@ export interface Person {
   type: "person";
   title: string;
   properties: Record<string, JsonValue> | null;
+  tags?: string[];
+  status?: "active" | "archived" | "trash";
+  isFavorite?: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export type TaskStatus = "todo" | "in_progress" | "completed";
@@ -34,6 +39,11 @@ export interface Task {
   type: "task";
   title: string;
   properties: TaskProperties | null;
+  tags?: string[];
+  status?: "active" | "archived" | "trash";
+  isFavorite?: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ProjectProperties {
@@ -47,6 +57,11 @@ export interface Project {
   type: "project";
   title: string;
   properties: ProjectProperties | null;
+  tags?: string[];
+  status?: "active" | "archived" | "trash";
+  isFavorite?: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface NoteProperties {
@@ -58,24 +73,31 @@ export interface Note {
   type: "note";
   title: string;
   properties: NoteProperties | null;
+  tags?: string[];
+  status?: "active" | "archived" | "trash";
+  isFavorite?: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
-
-export type EventMode = "online" | "in_person";
 
 export interface EventProperties {
   description?: string;
   startAt: string;
   endAt: string;
-  mode?: EventMode;
   location?: string;
-  link?: string;
 }
 
-export interface Event {
+export interface CalendarEvent {
   id: string;
+  userId: string;
   type: "event";
   title: string;
   properties: EventProperties | null;
+  tags?: string[];
+  status?: "active" | "archived" | "trash";
+  isFavorite?: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface FileProperties {
@@ -85,12 +107,17 @@ export interface FileProperties {
   size: number;
 }
 
-// Named FileRecord, not File, to avoid shadowing the browser's built-in File type.
-export interface FileRecord {
+export interface StoredFile {
   id: string;
+  userId: string;
   type: "file";
   title: string;
   properties: FileProperties | null;
+  tags?: string[];
+  status?: "active" | "archived" | "trash";
+  isFavorite?: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ExpenseProperties {
@@ -103,9 +130,15 @@ export interface ExpenseProperties {
 
 export interface Expense {
   id: string;
+  userId: string;
   type: "expense";
   title: string;
   properties: ExpenseProperties | null;
+  tags?: string[];
+  status?: "active" | "archived" | "trash";
+  isFavorite?: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface GenericObject {
@@ -113,6 +146,76 @@ export interface GenericObject {
   type: string;
   title: string;
   properties: Record<string, JsonValue> | null;
+  tags?: string[];
+  status?: "active" | "archived" | "trash";
+  isFavorite?: boolean;
+  archivedAt?: string | null;
+  deletedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type BlockType = "text" | "heading" | "todo" | "bullet" | "quote" | "code";
+
+export interface Block {
+  id: string;
+  type: BlockType;
+  content: string;
+  level?: 1 | 2 | 3;
+  checked?: boolean;
+  language?: string;
+}
+
+export interface PageProperties {
+  blocks: Block[];
+}
+
+export interface Page {
+  id: string;
+  userId: string;
+  type: "page";
+  title: string;
+  tags?: string[];
+  status?: "active" | "archived" | "trash";
+  isFavorite?: boolean;
+  properties: PageProperties | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ActivityItem {
+  id: string;
+  action: string;
+  details: Record<string, JsonValue> | null;
+  createdAt: string;
+}
+
+export interface DetailedObject {
+  object: GenericObject & { isFavorite: boolean };
+  relations: Array<{
+    id: string;
+    type: string;
+    direction: "outgoing" | "incoming";
+    otherObject: GenericObject;
+  }>;
+  files: Array<{
+    id: string;
+    title: string;
+    properties: FileProperties | Record<string, JsonValue> | null;
+    relationId?: string;
+  }>;
+  activities: ActivityItem[];
+}
+
+export interface FavoriteItem extends GenericObject {
+  favoriteId: string;
+  favoritedAt: string;
+  isFavorite: true;
+}
+
+export interface TagItem {
+  tag: string;
+  count: number;
 }
 
 export type RelationType =

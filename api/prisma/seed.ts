@@ -1,3 +1,4 @@
+import bcrypt from "bcrypt";
 import { prisma } from "../src/db";
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
@@ -228,14 +229,77 @@ const EXPENSES: SeedRecord[] = [
   },
 ];
 
-const ALL_RECORDS: SeedRecord[] = [...PEOPLE, ...TASKS, ...PROJECTS, ...NOTES, ...EVENTS, ...FILES, ...EXPENSES];
+const PAGES: (SeedRecord & { tags?: string[] })[] = [
+  {
+    type: "page",
+    title: "LifeOS Architecture & Specs",
+    tags: ["work", "project"],
+    properties: {
+      blocks: [
+        {
+          id: "b-1",
+          type: "heading",
+          content: "LifeOS Phase 2",
+        },
+        {
+          id: "b-2",
+          type: "text",
+          content: "Unified Operating System with Notion-style Pages, Blocks, Tags, and Relations.",
+        },
+        {
+          id: "b-3",
+          type: "todo",
+          content: "Complete block editor implementation",
+          checked: true,
+        },
+        {
+          id: "b-4",
+          type: "bullet",
+          content: "Interactive Notion-style blocks (heading, text, todo, bullet, quote, code)",
+        },
+        {
+          id: "b-5",
+          type: "quote",
+          content: "Simplicity is prerequisite for reliability. — Edsger Dijkstra",
+        },
+        {
+          id: "b-6",
+          type: "code",
+          content: "console.log('LifeOS is running');",
+        },
+      ],
+    },
+  },
+];
+
+const ALL_RECORDS: (SeedRecord & { tags?: string[] })[] = [
+  ...PEOPLE,
+  ...TASKS,
+  ...PROJECTS,
+  ...NOTES,
+  ...EVENTS,
+  ...FILES,
+  ...EXPENSES,
+  ...PAGES,
+];
+const DEMO_USER = {
+  name: "Demo User",
+  email: "demo@lifeos.local",
+  password: "password123",
+};
+const SALT_ROUNDS = 10;
 
 async function main() {
-  const users = await prisma.user.findMany({ select: { id: true, email: true, name: true } });
+  let users = await prisma.user.findMany({ select: { id: true, email: true, name: true } });
 
   if (users.length === 0) {
-    console.log("No users found — register a user in the app first, then re-run the seed.");
-    return;
+    const password = await bcrypt.hash(DEMO_USER.password, SALT_ROUNDS);
+    const user = await prisma.user.create({
+      data: { name: DEMO_USER.name, email: DEMO_USER.email, password },
+      select: { id: true, email: true, name: true },
+    });
+    users = [user];
+    console.log(`Created demo user: ${DEMO_USER.email} / ${DEMO_USER.password}`);
   }
 
   for (const user of users) {
@@ -257,6 +321,8 @@ async function main() {
         userId: user.id,
         type: r.type,
         title: r.title,
+        status: "active",
+        tags: r.tags ?? [],
         properties: r.properties,
       })),
     });

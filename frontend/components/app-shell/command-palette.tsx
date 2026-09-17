@@ -2,7 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarDays,
+  CheckSquare,
+  FileText,
+  FolderKanban,
+  Paperclip,
+  Receipt,
+  User as UserIcon,
+} from "lucide-react";
 
 import {
   Command,
@@ -17,6 +26,16 @@ import { api } from "@/lib/api-client";
 import type { GenericObject } from "@/lib/types";
 import { OBJECT_TYPE_META } from "@/lib/type-meta";
 import { navItems } from "./nav-items";
+
+const SEARCHABLE_TYPES: Record<string, { label: string; icon: typeof UserIcon; basePath: string }> = {
+  person: { label: "People", icon: UserIcon, basePath: "/people" },
+  task: { label: "Tasks", icon: CheckSquare, basePath: "/tasks" },
+  project: { label: "Projects", icon: FolderKanban, basePath: "/projects" },
+  note: { label: "Notes", icon: FileText, basePath: "/notes" },
+  event: { label: "Events", icon: CalendarDays, basePath: "/events" },
+  file: { label: "Files", icon: Paperclip, basePath: "/files" },
+  expense: { label: "Expenses", icon: Receipt, basePath: "/expenses" },
+};
 
 export function CommandPalette({
   open,

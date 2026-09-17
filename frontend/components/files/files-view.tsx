@@ -2,11 +2,21 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { List, Paperclip, Plus, Search } from "lucide-react";
+import { ExternalLink, List, Paperclip, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -17,21 +27,34 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { api, ApiError } from "@/lib/api-client";
-import { formatFileSize } from "@/lib/file-meta";
-import type { FileRecord } from "@/lib/types";
-import { CreateFileDialog } from "./create-file-dialog";
-import { FileDetailSheet } from "./file-detail-sheet";
-import { FileTypeIcon } from "./file-type-icon";
+import { NO_PROJECT, ProjectSelect } from "@/components/projects/project-select";
+import { findParentProject } from "@/lib/relations";
+import type { FileProperties, GenericObject, StoredFile } from "@/lib/types";
+
+function formatBytes(bytes?: number) {
+  if (!bytes) return "-";
+  const units = ["B", "KB", "MB", "GB"];
+  let size = bytes;
+  let unit = 0;
+  while (size >= 1024 && unit < units.length - 1) {
+    size /= 1024;
+    unit += 1;
+  }
+  return `${size.toFixed(size >= 10 || unit === 0 ? 0 : 1)} ${units[unit]}`;
+}
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString(undefined, { dateStyle: "medium" });
+}
 
 export function FilesView() {
   const router = useRouter();
   const searchParams = useSearchParams();
-
-  const [files, setFiles] = useState<FileRecord[]>([]);
+  const [files, setFiles] = useState<StoredFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
-  const [selected, setSelected] = useState<FileRecord | null>(null);
+  const [selected, setSelected] = useState<StoredFile | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
   useEffect(() => {
@@ -42,18 +65,14 @@ export function FilesView() {
         if (cancelled) return;
         setFiles(data);
         const focusId = searchParams.get("focus");
-        if (focusId) {
-          const match = data.find((f) => f.id === focusId);
-          if (match) {
-            setSelected(match);
-            setDetailOpen(true);
-          }
+        const match = focusId ? data.find((file) => file.id === focusId) : null;
+        if (match) {
+          setSelected(match);
+          setDetailOpen(true);
           router.replace("/files");
         }
       })
-      .catch((error) => {
-        toast.error(error instanceof ApiError ? error.message : "Couldn't load files");
-      })
+      .catch((error) => toast.error(error instanceof ApiError ? error.message : "Couldn't load files"))
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
@@ -66,25 +85,16 @@ export function FilesView() {
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();
     if (!q) return files;
-    return files.filter(
-      (file) =>
+    return files.filter((file) => {
+      const properties = file.properties;
+      return (
         file.title.toLowerCase().includes(q) ||
-        (file.properties?.mimeType ?? "").toLowerCase().includes(q)
-    );
-  }, [filter, files]);
-
-  function openFile(file: FileRecord) {
-    setSelected(file);
-    setDetailOpen(true);
-  }
-
-  function handleCreated(file: FileRecord) {
-    setFiles((prev) => [file, ...prev]);
-  }
-
-  function handleDeleted(id: string) {
-    setFiles((prev) => prev.filter((f) => f.id !== id));
-  }
+        (properties?.fileName ?? "").toLowerCase().includes(q) ||
+        (properties?.mimeType ?? "").toLowerCase().includes(q) ||
+        (properties?.url ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [files, filter]);
 
   return (
     <div className="flex min-h-full flex-col bg-background">
@@ -93,24 +103,16 @@ export function FilesView() {
           <Paperclip className="size-3" />
         </div>
         <h1 className="text-[15px] font-semibold">Files</h1>
-        {!loading ? (
-          <span className="flex items-center gap-1 text-[13px] text-muted-foreground">
-            {files.length}
-          </span>
-        ) : null}
-
-        <div className="ml-auto">
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
-            <Plus className="size-3.5" />
-            New
-          </Button>
-        </div>
+        {!loading ? <span className="text-[13px] text-muted-foreground">{files.length}</span> : null}
+        <Button size="sm" className="ml-auto" onClick={() => setCreateOpen(true)}>
+          <Plus className="size-3.5" />
+          New
+        </Button>
       </div>
 
       <div className="flex items-center gap-1.5 border-y bg-canvas px-6 py-1.5">
         <List className="size-3.5 text-muted-foreground" />
         <span className="text-[13px] font-medium text-foreground/80">All Files</span>
-
         <div className="relative ml-auto">
           <Search className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -125,8 +127,8 @@ export function FilesView() {
       <div className="px-6">
         {loading ? (
           <div className="flex flex-col gap-3 py-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-8 w-full" />
+            {Array.from({ length: 4 }).map((_, index) => (
+              <Skeleton key={index} className="h-8 w-full" />
             ))}
           </div>
         ) : filtered.length === 0 ? (
@@ -138,9 +140,7 @@ export function FilesView() {
               <>
                 <div>
                   <p className="text-sm font-medium">No files yet</p>
-                  <p className="text-sm text-muted-foreground">
-                    Link a file hosted elsewhere to keep track of it.
-                  </p>
+                  <p className="text-sm text-muted-foreground">Save references, links, and attachments.</p>
                 </div>
                 <Button size="sm" onClick={() => setCreateOpen(true)}>
                   <Plus className="size-3.5" />
@@ -155,53 +155,296 @@ export function FilesView() {
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead className="pl-0 text-[13px] font-medium text-muted-foreground">
-                  Name
-                </TableHead>
-                <TableHead className="text-[13px] font-medium text-muted-foreground">Type</TableHead>
-                <TableHead className="pr-0 text-right text-[13px] font-medium text-muted-foreground">
-                  Size
-                </TableHead>
+                <TableHead className="pl-0 text-[13px]">Name</TableHead>
+                <TableHead className="text-[13px]">Type</TableHead>
+                <TableHead className="text-[13px]">Size</TableHead>
+                <TableHead className="pr-0 text-right text-[13px]">Added</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((file) => {
-                return (
-                  <TableRow
-                    key={file.id}
-                    className="cursor-pointer border-border/70"
-                    onClick={() => openFile(file)}
-                  >
-                    <TableCell className="py-2 pl-0 text-[13px] font-medium">
-                      <span className="flex items-center gap-2">
-                        <FileTypeIcon
-                          mimeType={file.properties?.mimeType ?? ""}
-                          className="size-4 shrink-0 text-cyan-600"
-                        />
-                        <span className="truncate">{file.title}</span>
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-[13px] text-muted-foreground">
-                      {file.properties?.mimeType ?? "—"}
-                    </TableCell>
-                    <TableCell className="pr-0 text-right text-[13px] text-muted-foreground">
-                      {file.properties ? formatFileSize(file.properties.size) : "—"}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+              {filtered.map((file) => (
+                <TableRow
+                  key={file.id}
+                  className="cursor-pointer border-border/70"
+                  onClick={() => {
+                    setSelected(file);
+                    setDetailOpen(true);
+                  }}
+                >
+                  <TableCell className="py-2 pl-0 text-[13px] font-medium">{file.title}</TableCell>
+                  <TableCell className="text-[13px] text-muted-foreground">{file.properties?.mimeType ?? "-"}</TableCell>
+                  <TableCell className="text-[13px] text-muted-foreground">{formatBytes(file.properties?.size)}</TableCell>
+                  <TableCell className="pr-0 text-right text-[13px] text-muted-foreground">{formatDate(file.createdAt)}</TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         )}
       </div>
 
-      <CreateFileDialog open={createOpen} onOpenChange={setCreateOpen} onCreated={handleCreated} />
+      <CreateFileDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onCreated={(file) => setFiles((prev) => [file, ...prev])}
+      />
       <FileDetailSheet
         file={selected}
         open={detailOpen}
         onOpenChange={setDetailOpen}
-        onDeleted={handleDeleted}
+        onDeleted={(id) => setFiles((prev) => prev.filter((file) => file.id !== id))}
       />
     </div>
+  );
+}
+
+function CreateFileDialog({
+  open,
+  onOpenChange,
+  onCreated,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCreated: (file: StoredFile) => void;
+}) {
+  const [properties, setProperties] = useState<FileProperties>({
+    url: "",
+    fileName: "",
+    mimeType: "",
+    size: 1,
+  });
+  const [projectId, setProjectId] = useState(NO_PROJECT);
+  const [selectedProject, setSelectedProject] = useState<GenericObject | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  function reset() {
+    setProperties({ url: "", fileName: "", mimeType: "", size: 1 });
+    setProjectId(NO_PROJECT);
+    setSelectedProject(null);
+  }
+
+  async function onSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    setSubmitting(true);
+    try {
+      const file = await api.files.create({
+        properties: {
+          ...properties,
+          fileName: properties.fileName.trim(),
+          mimeType: properties.mimeType.trim(),
+          url: properties.url.trim(),
+          size: Number(properties.size),
+        },
+      });
+      if (projectId !== NO_PROJECT) {
+        try {
+          await api.relations.create({ sourceId: projectId, targetId: file.id, type: "has_file" });
+        } catch {
+          toast.error("File created, but couldn't link the project");
+        }
+      }
+      onCreated(file);
+      toast.success(`${file.title} added`);
+      reset();
+      onOpenChange(false);
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Couldn't create file");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(next) => { if (!next) reset(); onOpenChange(next); }}>
+      <DialogContent className="sm:max-w-md">
+        <form onSubmit={onSubmit} className="flex flex-col gap-4">
+          <DialogHeader>
+            <DialogTitle>New file</DialogTitle>
+            <DialogDescription>Add a file reference.</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="file-name">Name</Label>
+            <Input id="file-name" value={properties.fileName} onChange={(event) => setProperties({ ...properties, fileName: event.target.value })} required />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>Project</Label>
+            <ProjectSelect
+              value={projectId}
+              selected={selectedProject}
+              onChange={(id, project) => {
+                setProjectId(id);
+                setSelectedProject(project);
+              }}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="file-url">URL</Label>
+            <Input id="file-url" type="url" value={properties.url} onChange={(event) => setProperties({ ...properties, url: event.target.value })} required />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="file-mime">MIME type</Label>
+              <Input id="file-mime" value={properties.mimeType} onChange={(event) => setProperties({ ...properties, mimeType: event.target.value })} placeholder="application/pdf" required />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="file-size">Size bytes</Label>
+              <Input id="file-size" type="number" min={1} step={1} value={properties.size} onChange={(event) => setProperties({ ...properties, size: Number(event.target.value) })} required />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="submit" disabled={submitting || !properties.fileName.trim() || !properties.url.trim() || !properties.mimeType.trim()}>
+              {submitting ? "Adding..." : "Add file"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function FileDetailSheet({
+  file,
+  open,
+  onOpenChange,
+  onDeleted,
+}: {
+  file: StoredFile | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onDeleted: (id: string) => void;
+}) {
+  const [deleting, setDeleting] = useState(false);
+  const [savingProject, setSavingProject] = useState(false);
+  const [projectId, setProjectId] = useState(NO_PROJECT);
+  const [loadedProjectId, setLoadedProjectId] = useState(NO_PROJECT);
+  const [selectedProject, setSelectedProject] = useState<GenericObject | null>(null);
+  const [projectRelationId, setProjectRelationId] = useState<string | null>(null);
+  const [projectLoading, setProjectLoading] = useState(true);
+
+  useEffect(() => {
+    if (!file) return;
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setProjectLoading(true);
+      setProjectId(NO_PROJECT);
+      setLoadedProjectId(NO_PROJECT);
+      setSelectedProject(null);
+      setProjectRelationId(null);
+    });
+    api.objects
+      .connections(file.id)
+      .then((connections) => {
+        if (cancelled) return;
+        const parent = findParentProject(connections.connections, "has_file");
+        if (parent) {
+          setProjectId(parent.project.id);
+          setLoadedProjectId(parent.project.id);
+          setProjectRelationId(parent.relationId);
+          setSelectedProject(parent.project);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) toast.error("Couldn't load project link");
+      })
+      .finally(() => {
+        if (!cancelled) setProjectLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [file]);
+
+  async function onDelete() {
+    if (!file) return;
+    setDeleting(true);
+    try {
+      await api.files.remove(file.id);
+      onDeleted(file.id);
+      onOpenChange(false);
+      toast.success(`${file.title} deleted`);
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Couldn't delete file");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  async function onSaveProject() {
+    if (!file || projectId === loadedProjectId) return;
+    setSavingProject(true);
+    try {
+      if (projectRelationId) {
+        await api.relations.remove(projectRelationId);
+      }
+      const nextRelationId =
+        projectId !== NO_PROJECT
+          ? (
+              await api.relations.create({
+                sourceId: projectId,
+                targetId: file.id,
+                type: "has_file",
+              })
+            ).id
+          : null;
+      setProjectRelationId(nextRelationId);
+      setLoadedProjectId(projectId);
+      toast.success("Project link saved");
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Couldn't save project link");
+    } finally {
+      setSavingProject(false);
+    }
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="flex flex-col gap-0 sm:max-w-md">
+        {file ? (
+          <>
+            <SheetHeader>
+              <SheetTitle>{file.title}</SheetTitle>
+            </SheetHeader>
+            <div className="flex-1 overflow-y-auto px-4 py-4">
+              <div className="mb-4 flex flex-col gap-1.5">
+                <Label>Project</Label>
+                <ProjectSelect
+                  value={projectId}
+                  selected={selectedProject}
+                  disabled={projectLoading || savingProject}
+                  onChange={(id, project) => {
+                    setProjectId(id);
+                    setSelectedProject(project);
+                  }}
+                />
+              </div>
+              <dl className="grid grid-cols-[88px_1fr] gap-x-3 gap-y-3 text-sm">
+                <dt className="text-muted-foreground">URL</dt>
+                <dd className="min-w-0">
+                  <a className="inline-flex max-w-full items-center gap-1 truncate text-primary hover:underline" href={file.properties?.url} target="_blank" rel="noreferrer">
+                    <span className="truncate">{file.properties?.url}</span>
+                    <ExternalLink className="size-3.5 shrink-0" />
+                  </a>
+                </dd>
+                <dt className="text-muted-foreground">Type</dt>
+                <dd>{file.properties?.mimeType ?? "-"}</dd>
+                <dt className="text-muted-foreground">Size</dt>
+                <dd>{formatBytes(file.properties?.size)}</dd>
+                <dt className="text-muted-foreground">Added</dt>
+                <dd>{formatDate(file.createdAt)}</dd>
+              </dl>
+            </div>
+            <SheetFooter className="flex-row justify-between">
+              <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 hover:text-destructive" disabled={deleting} onClick={onDelete}>
+                <Trash2 className="size-3.5" />
+                {deleting ? "Deleting..." : "Delete"}
+              </Button>
+              <Button size="sm" disabled={savingProject || projectId === loadedProjectId} onClick={onSaveProject}>
+                {savingProject ? "Saving..." : "Save link"}
+              </Button>
+            </SheetFooter>
+          </>
+        ) : null}
+      </SheetContent>
+    </Sheet>
   );
 }

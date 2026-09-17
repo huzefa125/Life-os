@@ -1,22 +1,27 @@
 import { prisma } from "../../db";
 import type { CreateNoteBody, UpdateNoteBody } from "../../validation/note.validation";
+import { logActivity } from "../activity/activity.service";
 
 const NOTE_TYPE = "note";
 
 export async function createNote(userId: string, input: CreateNoteBody) {
-  return prisma.object.create({
+  const note = await prisma.object.create({
     data: {
       userId,
       type: NOTE_TYPE,
       title: input.title,
+      status: "active",
       properties: input.properties,
     },
   });
+
+  await logActivity(userId, note.id, "created", { title: note.title });
+  return note;
 }
 
 export async function getNotesByUser(userId: string) {
   return prisma.object.findMany({
-    where: { userId, type: NOTE_TYPE },
+    where: { userId, type: NOTE_TYPE, status: "active" },
     orderBy: { createdAt: "desc" },
   });
 }
@@ -34,13 +39,16 @@ export async function updateNote(id: string, userId: string, input: UpdateNoteBo
   if (!existing) return null;
 
   // properties, when provided, replaces the JSON blob wholesale (no deep merge)
-  return prisma.object.update({
+  const updated = await prisma.object.update({
     where: { id },
     data: {
       ...(input.title !== undefined ? { title: input.title } : {}),
       ...(input.properties !== undefined ? { properties: input.properties } : {}),
     },
   });
+
+  await logActivity(userId, id, "updated");
+  return updated;
 }
 
 export async function deleteNote(id: string, userId: string) {
@@ -49,6 +57,14 @@ export async function deleteNote(id: string, userId: string) {
   });
   if (!existing) return null;
 
-  await prisma.object.delete({ where: { id } });
-  return existing;
+  const trashed = await prisma.object.update({
+    where: { id },
+    data: {
+      status: "trash",
+      deletedAt: new Date(),
+    },
+  });
+
+  await logActivity(userId, id, "trashed");
+  return trashed;
 }
