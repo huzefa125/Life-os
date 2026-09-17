@@ -3,9 +3,11 @@ import {
   CheckSquare,
   FileText,
   FolderKanban,
+  Landmark,
   type LucideIcon,
   Paperclip,
   Receipt,
+  Tag,
   User,
 } from "lucide-react";
 
@@ -23,5 +25,7 @@ export const OBJECT_TYPE_META: Record<string, ObjectTypeMeta> = {
   note: { label: "Notes", icon: FileText, basePath: "/notes", color: "text-amber-600" },
   event: { label: "Events", icon: CalendarDays, basePath: "/events", color: "text-rose-600" },
   file: { label: "Files", icon: Paperclip, basePath: "/files", color: "text-cyan-600" },
-  expense: { label: "Expenses", icon: Receipt, basePath: "/expenses", color: "text-lime-600" },
+  account: { label: "Accounts", icon: Landmark, basePath: "/money", color: "text-lime-600" },
+  category: { label: "Categories", icon: Tag, basePath: "/money/categories", color: "text-lime-600" },
+  transaction: { label: "Transactions", icon: Receipt, basePath: "/money/transactions", color: "text-lime-600" },
 };

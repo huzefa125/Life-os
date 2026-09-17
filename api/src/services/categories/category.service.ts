@@ -1,44 +1,43 @@
 import { prisma } from "../../db";
-import type { CreateExpenseBody, UpdateExpenseBody } from "../../validation/expense.validation";
+import type { CreateCategoryBody, UpdateCategoryBody } from "../../validation/category.validation";
 import { logActivity } from "../activity/activity.service";
 
-const EXPENSE_TYPE = "expense";
+const CATEGORY_TYPE = "category";
 
-export async function createExpense(userId: string, input: CreateExpenseBody) {
-  const expense = await prisma.object.create({
+export async function createCategory(userId: string, input: CreateCategoryBody) {
+  const category = await prisma.object.create({
     data: {
       userId,
-      type: EXPENSE_TYPE,
+      type: CATEGORY_TYPE,
       title: input.title,
       status: "active",
       properties: input.properties,
     },
   });
 
-  await logActivity(userId, expense.id, "created", { title: expense.title });
-  return expense;
+  await logActivity(userId, category.id, "created", { title: category.title });
+  return category;
 }
 
-export async function getExpensesByUser(userId: string) {
+export async function getCategoriesByUser(userId: string) {
   return prisma.object.findMany({
-    where: { userId, type: EXPENSE_TYPE, status: "active" },
+    where: { userId, type: CATEGORY_TYPE, status: "active" },
     orderBy: { createdAt: "desc" },
   });
 }
 
-export async function getExpenseById(id: string, userId: string) {
+export async function getCategoryById(id: string, userId: string) {
   return prisma.object.findFirst({
-    where: { id, userId, type: EXPENSE_TYPE },
+    where: { id, userId, type: CATEGORY_TYPE },
   });
 }
 
-export async function updateExpense(id: string, userId: string, input: UpdateExpenseBody) {
+export async function updateCategory(id: string, userId: string, input: UpdateCategoryBody) {
   const existing = await prisma.object.findFirst({
-    where: { id, userId, type: EXPENSE_TYPE },
+    where: { id, userId, type: CATEGORY_TYPE },
   });
   if (!existing) return null;
 
-  // properties, when provided, replaces the JSON blob wholesale (no deep merge)
   const updated = await prisma.object.update({
     where: { id },
     data: {
@@ -51,9 +50,9 @@ export async function updateExpense(id: string, userId: string, input: UpdateExp
   return updated;
 }
 
-export async function deleteExpense(id: string, userId: string) {
+export async function deleteCategory(id: string, userId: string) {
   const existing = await prisma.object.findFirst({
-    where: { id, userId, type: EXPENSE_TYPE },
+    where: { id, userId, type: CATEGORY_TYPE },
   });
   if (!existing) return null;
 

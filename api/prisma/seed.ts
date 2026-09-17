@@ -1,9 +1,11 @@
 import bcrypt from "bcrypt";
+import { randomUUID } from "crypto";
 import { prisma } from "../src/db";
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
 interface SeedRecord {
+  id?: string;
   type: string;
   title: string;
   properties: Record<string, JsonValue>;
@@ -205,29 +207,110 @@ const FILES: SeedRecord[] = [
   },
 ];
 
-const EXPENSES: SeedRecord[] = [
-  {
-    type: "expense",
-    title: "Team lunch",
-    properties: { amount: 42.5, currency: "USD", category: "food", date: "2026-09-03", description: "Team lunch" },
-  },
-  {
-    type: "expense",
-    title: "Annual SaaS subscriptions",
-    properties: {
-      amount: 1200,
-      currency: "USD",
-      category: "software",
-      date: "2026-09-05",
-      description: "Annual SaaS subscriptions",
+/**
+ * Money records cross-reference each other by id (transactions point at
+ * accounts/categories), and those ids must be unique per row across the
+ * whole Object table — so unlike the other seed groups, these can't be
+ * static module-level arrays shared by every seeded user. Called once per
+ * user in the main loop below.
+ */
+function buildMoneyRecords(): (SeedRecord & { tags?: string[] })[] {
+  const cashAccountId = randomUUID();
+  const checkingAccountId = randomUUID();
+  const foodCategoryId = randomUUID();
+  const softwareCategoryId = randomUUID();
+  const travelCategoryId = randomUUID();
+  const salaryCategoryId = randomUUID();
+
+  return [
+    {
+      id: cashAccountId,
+      type: "account",
+      title: "Cash Wallet",
+      properties: { accountType: "cash", currency: "USD", startingBalance: 200 },
     },
-  },
-  {
-    type: "expense",
-    title: "Uber to airport",
-    properties: { amount: 89.99, currency: "USD", category: "travel", date: "2026-09-08", description: "Uber to airport" },
-  },
-];
+    {
+      id: checkingAccountId,
+      type: "account",
+      title: "Main Checking",
+      properties: { accountType: "checking", currency: "USD", startingBalance: 5000, institution: "Demo Bank" },
+    },
+    { id: foodCategoryId, type: "category", title: "Food", properties: { kind: "expense", color: "#f97316" } },
+    {
+      id: softwareCategoryId,
+      type: "category",
+      title: "Software",
+      properties: { kind: "expense", color: "#6366f1" },
+    },
+    { id: travelCategoryId, type: "category", title: "Travel", properties: { kind: "expense", color: "#0ea5e9" } },
+    { id: salaryCategoryId, type: "category", title: "Salary", properties: { kind: "income", color: "#22c55e" } },
+    {
+      type: "transaction",
+      title: "Team lunch",
+      properties: {
+        transactionType: "expense",
+        amount: 42.5,
+        currency: "USD",
+        date: "2026-09-03",
+        description: "Team lunch",
+        accountId: cashAccountId,
+        categoryId: foodCategoryId,
+      },
+    },
+    {
+      type: "transaction",
+      title: "Annual SaaS subscriptions",
+      properties: {
+        transactionType: "expense",
+        amount: 1200,
+        currency: "USD",
+        date: "2026-09-05",
+        description: "Annual SaaS subscriptions",
+        accountId: checkingAccountId,
+        categoryId: softwareCategoryId,
+      },
+    },
+    {
+      type: "transaction",
+      title: "Uber to airport",
+      properties: {
+        transactionType: "expense",
+        amount: 89.99,
+        currency: "USD",
+        date: "2026-09-08",
+        description: "Uber to airport",
+        accountId: cashAccountId,
+        categoryId: travelCategoryId,
+      },
+    },
+    {
+      type: "transaction",
+      title: "September paycheck",
+      properties: {
+        transactionType: "income",
+        amount: 6000,
+        currency: "USD",
+        date: "2026-09-01",
+        description: "September paycheck",
+        accountId: checkingAccountId,
+        categoryId: salaryCategoryId,
+      },
+    },
+    {
+      type: "transaction",
+      title: "Move cash to checking",
+      properties: {
+        transactionType: "transfer",
+        amount: 100,
+        currency: "USD",
+        date: "2026-09-10",
+        description: "Move cash to checking",
+        accountId: cashAccountId,
+        toAccountId: checkingAccountId,
+      },
+    },
+  ];
+}
 
 const PAGES: (SeedRecord & { tags?: string[] })[] = [
   {
@@ -279,7 +362,6 @@ const ALL_RECORDS: (SeedRecord & { tags?: string[] })[] = [
   ...NOTES,
   ...EVENTS,
   ...FILES,
-  ...EXPENSES,
   ...PAGES,
 ];
 const DEMO_USER = {
@@ -309,7 +391,8 @@ async function main() {
     });
     const existingKeys = new Set(existing.map((o) => `${o.type}:${o.title}`));
 
-    const toCreate = ALL_RECORDS.filter((r) => !existingKeys.has(`${r.type}:${r.title}`));
+    const records = [...ALL_RECORDS, ...buildMoneyRecords()];
+    const toCreate = records.filter((r) => !existingKeys.has(`${r.type}:${r.title}`));
 
     if (toCreate.length === 0) {
       console.log(`Skipping ${user.email} — already has all seed data.`);
@@ -318,6 +401,7 @@ async function main() {
 
     await prisma.object.createMany({
       data: toCreate.map((r) => ({
+        ...(r.id ? { id: r.id } : {}),
         userId: user.id,
         type: r.type,
         title: r.title,

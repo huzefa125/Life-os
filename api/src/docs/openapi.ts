@@ -24,10 +24,20 @@ import { createNoteSchema, updateNoteSchema, noteIdParamSchema } from "../valida
 import { createEventSchema, updateEventSchema, eventIdParamSchema } from "../validation/event.validation";
 import { createFileSchema, fileIdParamSchema } from "../validation/file.validation";
 import {
-  createExpenseSchema,
-  updateExpenseSchema,
-  expenseIdParamSchema,
-} from "../validation/expense.validation";
+  createAccountSchema,
+  updateAccountSchema,
+  accountIdParamSchema,
+} from "../validation/account.validation";
+import {
+  createCategorySchema,
+  updateCategorySchema,
+  categoryIdParamSchema,
+} from "../validation/category.validation";
+import {
+  createTransactionSchema,
+  updateTransactionSchema,
+  transactionIdParamSchema,
+} from "../validation/transaction.validation";
 
 const registry = new OpenAPIRegistry();
 
@@ -152,22 +162,58 @@ const fileSchema = z
   })
   .openapi("File");
 
-const expenseSchema = z
+const accountSchema = z
   .object({
     id: z.uuid(),
-    type: z.literal("expense"),
-    title: z.string().openapi({ example: "Lunch" }),
+    type: z.literal("account"),
+    title: z.string().openapi({ example: "Main Checking" }),
     properties: z
       .object({
-        amount: z.number().openapi({ example: 500 }),
+        accountType: z.string().openapi({ example: "checking" }),
         currency: z.string().openapi({ example: "INR" }),
-        category: z.string().openapi({ example: "food" }),
-        date: z.string().openapi({ example: "2026-09-03" }),
-        description: z.string().optional().openapi({ example: "Lunch" }),
+        startingBalance: z.number().openapi({ example: 10000 }),
+        institution: z.string().optional().openapi({ example: "HDFC Bank" }),
+        notes: z.string().optional(),
+      })
+      .nullable(),
+    balance: z.number().openapi({ example: 8200 }),
+  })
+  .openapi("Account");
+
+const categorySchema = z
+  .object({
+    id: z.uuid(),
+    type: z.literal("category"),
+    title: z.string().openapi({ example: "Food" }),
+    properties: z
+      .object({
+        kind: z.string().openapi({ example: "expense" }),
+        color: z.string().optional().openapi({ example: "#f97316" }),
+        icon: z.string().optional(),
       })
       .nullable(),
   })
-  .openapi("Expense");
+  .openapi("Category");
+
+const transactionSchema = z
+  .object({
+    id: z.uuid(),
+    type: z.literal("transaction"),
+    title: z.string().openapi({ example: "Lunch" }),
+    properties: z
+      .object({
+        transactionType: z.string().openapi({ example: "expense" }),
+        amount: z.number().openapi({ example: 500 }),
+        currency: z.string().openapi({ example: "INR" }),
+        date: z.string().openapi({ example: "2026-09-03" }),
+        description: z.string().optional().openapi({ example: "Lunch" }),
+        accountId: z.uuid(),
+        toAccountId: z.uuid().optional(),
+        categoryId: z.uuid().optional(),
+      })
+      .nullable(),
+  })
+  .openapi("Transaction");
 
 const relationSchema = z
   .object({
@@ -711,17 +757,17 @@ registry.registerPath({
   },
 });
 
-// -- Expenses --
+// -- Accounts --
 
 registry.registerPath({
   method: "post",
-  path: "/api/expenses",
-  tags: ["Expenses"],
-  summary: "Create an Expense",
+  path: "/api/accounts",
+  tags: ["Accounts"],
+  summary: "Create an Account",
   security: authSecurity,
-  request: { body: jsonBody(createExpenseSchema) },
+  request: { body: jsonBody(createAccountSchema) },
   responses: {
-    201: { description: "Expense created", ...jsonBody(successResponse(expenseSchema)) },
+    201: { description: "Account created", ...jsonBody(successResponse(accountSchema)) },
     400: { description: "Validation error", ...jsonBody(errorResponse) },
     401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
   },
@@ -729,58 +775,215 @@ registry.registerPath({
 
 registry.registerPath({
   method: "get",
-  path: "/api/expenses",
-  tags: ["Expenses"],
-  summary: "List all Expenses belonging to the authenticated user",
+  path: "/api/accounts",
+  tags: ["Accounts"],
+  summary: "List all Accounts belonging to the authenticated user, with computed balances",
   security: authSecurity,
   responses: {
-    200: { description: "List of expenses", ...jsonBody(successResponse(z.array(expenseSchema))) },
+    200: { description: "List of accounts", ...jsonBody(successResponse(z.array(accountSchema))) },
     401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
   },
 });
 
 registry.registerPath({
   method: "get",
-  path: "/api/expenses/{id}",
-  tags: ["Expenses"],
-  summary: "Get a single Expense",
+  path: "/api/accounts/{id}",
+  tags: ["Accounts"],
+  summary: "Get a single Account",
   security: authSecurity,
-  request: { params: expenseIdParamSchema },
+  request: { params: accountIdParamSchema },
   responses: {
-    200: { description: "Expense found", ...jsonBody(successResponse(expenseSchema)) },
+    200: { description: "Account found", ...jsonBody(successResponse(accountSchema)) },
     400: { description: "Validation error", ...jsonBody(errorResponse) },
     401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
-    404: { description: "Expense not found", ...jsonBody(errorResponse) },
+    404: { description: "Account not found", ...jsonBody(errorResponse) },
   },
 });
 
 registry.registerPath({
   method: "patch",
-  path: "/api/expenses/{id}",
-  tags: ["Expenses"],
-  summary: "Update an Expense",
+  path: "/api/accounts/{id}",
+  tags: ["Accounts"],
+  summary: "Update an Account",
   security: authSecurity,
-  request: { params: expenseIdParamSchema, body: jsonBody(updateExpenseSchema) },
+  request: { params: accountIdParamSchema, body: jsonBody(updateAccountSchema) },
   responses: {
-    200: { description: "Expense updated", ...jsonBody(successResponse(expenseSchema)) },
+    200: { description: "Account updated", ...jsonBody(successResponse(accountSchema)) },
     400: { description: "Validation error", ...jsonBody(errorResponse) },
     401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
-    404: { description: "Expense not found", ...jsonBody(errorResponse) },
+    404: { description: "Account not found", ...jsonBody(errorResponse) },
   },
 });
 
 registry.registerPath({
   method: "delete",
-  path: "/api/expenses/{id}",
-  tags: ["Expenses"],
-  summary: "Delete an Expense",
+  path: "/api/accounts/{id}",
+  tags: ["Accounts"],
+  summary: "Delete an Account",
   security: authSecurity,
-  request: { params: expenseIdParamSchema },
+  request: { params: accountIdParamSchema },
   responses: {
-    200: { description: "Expense deleted", ...jsonBody(successResponse(expenseSchema)) },
+    200: { description: "Account deleted", ...jsonBody(successResponse(accountSchema)) },
     400: { description: "Validation error", ...jsonBody(errorResponse) },
     401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
-    404: { description: "Expense not found", ...jsonBody(errorResponse) },
+    404: { description: "Account not found", ...jsonBody(errorResponse) },
+  },
+});
+
+// -- Categories --
+
+registry.registerPath({
+  method: "post",
+  path: "/api/categories",
+  tags: ["Categories"],
+  summary: "Create a Category",
+  security: authSecurity,
+  request: { body: jsonBody(createCategorySchema) },
+  responses: {
+    201: { description: "Category created", ...jsonBody(successResponse(categorySchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/categories",
+  tags: ["Categories"],
+  summary: "List all Categories belonging to the authenticated user",
+  security: authSecurity,
+  responses: {
+    200: { description: "List of categories", ...jsonBody(successResponse(z.array(categorySchema))) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/categories/{id}",
+  tags: ["Categories"],
+  summary: "Get a single Category",
+  security: authSecurity,
+  request: { params: categoryIdParamSchema },
+  responses: {
+    200: { description: "Category found", ...jsonBody(successResponse(categorySchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+    404: { description: "Category not found", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "patch",
+  path: "/api/categories/{id}",
+  tags: ["Categories"],
+  summary: "Update a Category",
+  security: authSecurity,
+  request: { params: categoryIdParamSchema, body: jsonBody(updateCategorySchema) },
+  responses: {
+    200: { description: "Category updated", ...jsonBody(successResponse(categorySchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+    404: { description: "Category not found", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "delete",
+  path: "/api/categories/{id}",
+  tags: ["Categories"],
+  summary: "Delete a Category",
+  security: authSecurity,
+  request: { params: categoryIdParamSchema },
+  responses: {
+    200: { description: "Category deleted", ...jsonBody(successResponse(categorySchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+    404: { description: "Category not found", ...jsonBody(errorResponse) },
+  },
+});
+
+// -- Transactions --
+
+registry.registerPath({
+  method: "post",
+  path: "/api/transactions",
+  tags: ["Transactions"],
+  summary: "Create a Transaction (income, expense, or transfer between accounts)",
+  security: authSecurity,
+  request: { body: jsonBody(createTransactionSchema) },
+  responses: {
+    201: { description: "Transaction created", ...jsonBody(successResponse(transactionSchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+    404: { description: "Account or category not found", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/transactions",
+  tags: ["Transactions"],
+  summary: "List Transactions belonging to the authenticated user, optionally filtered",
+  security: authSecurity,
+  request: {
+    query: z.object({
+      accountId: z.uuid().optional(),
+      categoryId: z.uuid().optional(),
+      transactionType: z.enum(["income", "expense", "transfer"]).optional(),
+      dateFrom: z.string().optional(),
+      dateTo: z.string().optional(),
+      q: z.string().optional(),
+    }),
+  },
+  responses: {
+    200: { description: "List of transactions", ...jsonBody(successResponse(z.array(transactionSchema))) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/transactions/{id}",
+  tags: ["Transactions"],
+  summary: "Get a single Transaction",
+  security: authSecurity,
+  request: { params: transactionIdParamSchema },
+  responses: {
+    200: { description: "Transaction found", ...jsonBody(successResponse(transactionSchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+    404: { description: "Transaction not found", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "patch",
+  path: "/api/transactions/{id}",
+  tags: ["Transactions"],
+  summary: "Update a Transaction",
+  security: authSecurity,
+  request: { params: transactionIdParamSchema, body: jsonBody(updateTransactionSchema) },
+  responses: {
+    200: { description: "Transaction updated", ...jsonBody(successResponse(transactionSchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+    404: { description: "Transaction, account, or category not found", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "delete",
+  path: "/api/transactions/{id}",
+  tags: ["Transactions"],
+  summary: "Delete a Transaction",
+  security: authSecurity,
+  request: { params: transactionIdParamSchema },
+  responses: {
+    200: { description: "Transaction deleted", ...jsonBody(successResponse(transactionSchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+    404: { description: "Transaction not found", ...jsonBody(errorResponse) },
   },
 });
 

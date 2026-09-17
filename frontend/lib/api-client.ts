@@ -1,11 +1,13 @@
 import { getToken } from "@/lib/auth-storage";
 import type {
+  Account,
+  AccountProperties,
   ApiUser,
   CalendarEvent,
+  Category,
+  CategoryProperties,
   DetailedObject,
   EventProperties,
-  Expense,
-  ExpenseProperties,
   FavoriteItem,
   FileProperties,
   GenericObject,
@@ -24,6 +26,9 @@ import type {
   TagItem,
   Task,
   TaskProperties,
+  Transaction,
+  TransactionFilters,
+  TransactionProperties,
 } from "@/lib/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
@@ -174,20 +179,59 @@ export const api = {
       }),
     remove: (id: string) => request<StoredFile>(`/api/files/${id}`, { method: "DELETE" }),
   },
-  expenses: {
-    list: () => request<Expense[]>("/api/expenses"),
-    get: (id: string) => request<Expense>(`/api/expenses/${id}`),
-    create: (input: { title: string; properties: ExpenseProperties }) =>
-      request<Expense>("/api/expenses", {
+  accounts: {
+    list: () => request<Account[]>("/api/accounts"),
+    get: (id: string) => request<Account>(`/api/accounts/${id}`),
+    create: (input: { title: string; properties: AccountProperties }) =>
+      request<Account>("/api/accounts", {
         method: "POST",
         body: JSON.stringify(input),
       }),
-    update: (id: string, input: { title?: string; properties?: Partial<ExpenseProperties> }) =>
-      request<Expense>(`/api/expenses/${id}`, {
+    update: (id: string, input: { title?: string; properties?: AccountProperties }) =>
+      request<Account>(`/api/accounts/${id}`, {
         method: "PATCH",
         body: JSON.stringify(input),
       }),
-    remove: (id: string) => request<Expense>(`/api/expenses/${id}`, { method: "DELETE" }),
+    remove: (id: string) => request<Account>(`/api/accounts/${id}`, { method: "DELETE" }),
+  },
+  categories: {
+    list: () => request<Category[]>("/api/categories"),
+    get: (id: string) => request<Category>(`/api/categories/${id}`),
+    create: (input: { title: string; properties: CategoryProperties }) =>
+      request<Category>("/api/categories", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    update: (id: string, input: { title?: string; properties?: CategoryProperties }) =>
+      request<Category>(`/api/categories/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(input),
+      }),
+    remove: (id: string) => request<Category>(`/api/categories/${id}`, { method: "DELETE" }),
+  },
+  transactions: {
+    list: (filters?: TransactionFilters) => {
+      const params = new URLSearchParams();
+      if (filters) {
+        for (const [key, value] of Object.entries(filters)) {
+          if (value) params.set(key, value);
+        }
+      }
+      const query = params.toString();
+      return request<Transaction[]>(`/api/transactions${query ? `?${query}` : ""}`);
+    },
+    get: (id: string) => request<Transaction>(`/api/transactions/${id}`),
+    create: (input: { title: string; properties: TransactionProperties }) =>
+      request<Transaction>("/api/transactions", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    update: (id: string, input: { title?: string; properties?: TransactionProperties }) =>
+      request<Transaction>(`/api/transactions/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(input),
+      }),
+    remove: (id: string) => request<Transaction>(`/api/transactions/${id}`, { method: "DELETE" }),
   },
   timeline: {
     list: () => request<GenericObject[]>("/api/timeline"),
@@ -277,8 +321,5 @@ export const api = {
       if (type) params.set("type", type);
       return request<GenericObject[]>(`/api/search?${params.toString()}`);
     },
-  },
-  timeline: {
-    list: () => request<GenericObject[]>("/api/timeline"),
   },
 };

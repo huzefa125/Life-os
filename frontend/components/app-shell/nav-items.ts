@@ -8,9 +8,9 @@ import {
   History,
   type LucideIcon,
   Paperclip,
-  Receipt,
   Trash2,
   Users,
+  Wallet,
 } from "lucide-react";
 
 export interface NavItem {
@@ -29,7 +29,7 @@ export const navItems: NavItem[] = [
   { label: "Notes", href: "/notes", icon: FileText, enabled: true, color: "text-amber-600" },
   { label: "Events", href: "/events", icon: CalendarDays, enabled: true, color: "text-rose-600" },
   { label: "Files", href: "/files", icon: Paperclip, enabled: true, color: "text-cyan-600" },
-  { label: "Expenses", href: "/expenses", icon: Receipt, enabled: true, color: "text-lime-600" },
+  { label: "Money", href: "/money", icon: Wallet, enabled: true, color: "text-lime-600" },
   { label: "Timeline", href: "/timeline", icon: History, enabled: true, color: "text-slate-500" },
 ];
 

@@ -9,6 +9,9 @@ export const RELATION_TYPES = [
   "knows",
   "related_to",
   "assigned_to",
+  "in_account",
+  "in_category",
+  "transfer_to",
 ] as const;
 
 export const relationIdParamSchema = z.object({

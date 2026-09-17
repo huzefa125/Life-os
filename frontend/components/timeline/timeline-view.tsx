@@ -7,9 +7,11 @@ import {
   FileText,
   FolderKanban,
   History,
+  Landmark,
   Paperclip,
   Receipt,
   Search,
+  Tag,
   User,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -27,7 +29,9 @@ const TYPE_META = {
   note: { label: "Note", icon: FileText, color: "bg-amber-100 text-amber-600" },
   event: { label: "Event", icon: CalendarDays, color: "bg-rose-100 text-rose-600" },
   file: { label: "File", icon: Paperclip, color: "bg-cyan-100 text-cyan-600" },
-  expense: { label: "Expense", icon: Receipt, color: "bg-lime-100 text-lime-700" },
+  account: { label: "Account", icon: Landmark, color: "bg-lime-100 text-lime-700" },
+  category: { label: "Category", icon: Tag, color: "bg-lime-100 text-lime-700" },
+  transaction: { label: "Transaction", icon: Receipt, color: "bg-lime-100 text-lime-700" },
 };
 
 function formatDateTime(iso: string) {
@@ -41,7 +45,7 @@ function metaFor(type: string) {
 function summarize(item: GenericObject) {
   const properties = item.properties ?? {};
   if (item.type === "task" && typeof properties.status === "string") return properties.status.replaceAll("_", " ");
-  if (item.type === "expense" && typeof properties.amount === "number") return `${properties.currency ?? ""} ${properties.amount}`;
+  if (item.type === "transaction" && typeof properties.amount === "number") return `${properties.currency ?? ""} ${properties.amount}`;
   if (item.type === "event" && typeof properties.startAt === "string") return formatDateTime(properties.startAt);
   if (item.type === "file" && typeof properties.mimeType === "string") return properties.mimeType;
   if (item.type === "note" && typeof properties.content === "string") return properties.content;

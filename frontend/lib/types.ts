@@ -120,25 +120,81 @@ export interface StoredFile {
   updatedAt: string;
 }
 
-export interface ExpenseProperties {
-  amount: number;
+export type AccountType = "checking" | "savings" | "credit_card" | "cash" | "investment" | "loan" | "other";
+
+export interface AccountProperties {
+  accountType: AccountType;
   currency: string;
-  category: string;
-  date: string;
-  description?: string;
+  startingBalance: number;
+  institution?: string;
+  notes?: string;
 }
 
-export interface Expense {
+export interface Account {
   id: string;
-  userId: string;
-  type: "expense";
+  type: "account";
   title: string;
-  properties: ExpenseProperties | null;
+  properties: AccountProperties | null;
+  balance: number;
   tags?: string[];
   status?: "active" | "archived" | "trash";
   isFavorite?: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export type CategoryKind = "income" | "expense";
+
+export interface CategoryProperties {
+  kind: CategoryKind;
+  color?: string;
+  icon?: string;
+}
+
+export interface Category {
+  id: string;
+  type: "category";
+  title: string;
+  properties: CategoryProperties | null;
+  tags?: string[];
+  status?: "active" | "archived" | "trash";
+  isFavorite?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type TransactionType = "income" | "expense" | "transfer";
+
+export interface TransactionProperties {
+  transactionType: TransactionType;
+  amount: number;
+  currency: string;
+  date: string;
+  description?: string;
+  accountId: string;
+  toAccountId?: string;
+  categoryId?: string;
+}
+
+export interface Transaction {
+  id: string;
+  type: "transaction";
+  title: string;
+  properties: TransactionProperties | null;
+  tags?: string[];
+  status?: "active" | "archived" | "trash";
+  isFavorite?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TransactionFilters {
+  accountId?: string;
+  categoryId?: string;
+  transactionType?: TransactionType;
+  dateFrom?: string;
+  dateTo?: string;
+  q?: string;
 }
 
 export interface GenericObject {
@@ -226,7 +282,10 @@ export type RelationType =
   | "has_event"
   | "knows"
   | "related_to"
-  | "assigned_to";
+  | "assigned_to"
+  | "in_account"
+  | "in_category"
+  | "transfer_to";
 
 export interface Relation {
   id: string;
