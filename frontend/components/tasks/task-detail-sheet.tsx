@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import { api, ApiError } from "@/lib/api-client";
 import { findAssignee, findParentProject } from "@/lib/relations";
 import { ensureSelfPerson } from "@/lib/self-person";
@@ -33,10 +34,6 @@ import { AssigneeSelect, UNASSIGNED } from "./assignee-select";
 
 const NO_PRIORITY = "none";
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
-}
-
 export function TaskDetailSheet({
   task,
   open,
@@ -44,6 +41,7 @@ export function TaskDetailSheet({
   onUpdated,
   onDeleted,
   onAssigneeChanged,
+  onProjectChanged,
 }: {
   task: Task | null;
   open: boolean;
@@ -51,6 +49,7 @@ export function TaskDetailSheet({
   onUpdated: (task: Task) => void;
   onDeleted: (id: string) => void;
   onAssigneeChanged?: (taskId: string, person: GenericObject | null) => void;
+  onProjectChanged?: (taskId: string, project: GenericObject | null) => void;
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -63,6 +62,7 @@ export function TaskDetailSheet({
             onUpdated={onUpdated}
             onDeleted={onDeleted}
             onAssigneeChanged={onAssigneeChanged}
+            onProjectChanged={onProjectChanged}
           />
         ) : null}
       </SheetContent>
@@ -76,12 +76,14 @@ function TaskDetailForm({
   onUpdated,
   onDeleted,
   onAssigneeChanged,
+  onProjectChanged,
 }: {
   task: Task;
   onOpenChange: (open: boolean) => void;
   onUpdated: (task: Task) => void;
   onDeleted: (id: string) => void;
   onAssigneeChanged?: (taskId: string, person: GenericObject | null) => void;
+  onProjectChanged?: (taskId: string, project: GenericObject | null) => void;
 }) {
   const [title, setTitle] = useState(task.title);
   const [status, setStatus] = useState<TaskStatus>(task.properties?.status ?? "todo");
@@ -89,6 +91,7 @@ function TaskDetailForm({
     task.properties?.priority ?? NO_PRIORITY
   );
   const [dueDate, setDueDate] = useState(task.properties?.dueDate ?? "");
+  const [notes, setNotes] = useState(task.properties?.notes ?? "");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -155,6 +158,7 @@ function TaskDetailForm({
     status !== (task.properties?.status ?? "todo") ||
     priority !== (task.properties?.priority ?? NO_PRIORITY) ||
     dueDate !== (task.properties?.dueDate ?? "") ||
+    notes.trim() !== (task.properties?.notes ?? "") ||
     assigneeId !== loadedAssigneeId ||
     projectId !== loadedProjectId;
 
@@ -168,6 +172,7 @@ function TaskDetailForm({
           status,
           ...(priority !== NO_PRIORITY ? { priority } : {}),
           ...(dueDate ? { dueDate } : {}),
+          ...(notes.trim() ? { notes: notes.trim() } : {}),
         },
       });
       onUpdated(updated);
@@ -207,6 +212,7 @@ function TaskDetailForm({
             : null;
         setProjectRelationId(nextRelationId);
         setLoadedProjectId(projectId);
+        onProjectChanged?.(task.id, selectedProject);
       }
 
       toast.success("Saved");
@@ -317,9 +323,15 @@ function TaskDetailForm({
           />
         </div>
 
-        <div className="mt-6 flex flex-col gap-1 text-xs text-muted-foreground">
-          <span>Created {formatDate(task.createdAt)}</span>
-          <span>Updated {formatDate(task.updatedAt)}</span>
+        <div className="mt-4 flex flex-col gap-1.5">
+          <Label htmlFor="detail-notes">Notes</Label>
+          <Textarea
+            id="detail-notes"
+            placeholder="Add any notes…"
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
+            rows={4}
+          />
         </div>
       </div>
 

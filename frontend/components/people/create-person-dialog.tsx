@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { api, ApiError } from "@/lib/api-client";
 import type { Person } from "@/lib/types";
 import { PropertyEditor, rowsToProperties, type PropertyRow } from "./property-editor";
@@ -31,6 +32,7 @@ export function CreatePersonDialog({
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
+  const [notes, setNotes] = useState("");
   const [rows, setRows] = useState<PropertyRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
@@ -38,6 +40,7 @@ export function CreatePersonDialog({
     setName("");
     setEmail("");
     setCompany("");
+    setNotes("");
     setRows([]);
   }
 
@@ -49,6 +52,7 @@ export function CreatePersonDialog({
       const properties = {
         ...(email.trim() ? { email: email.trim() } : {}),
         ...(company.trim() ? { company: company.trim() } : {}),
+        ...(notes.trim() ? { notes: notes.trim() } : {}),
         ...rowsToProperties(rows),
       };
       const person = await api.people.create({
@@ -113,6 +117,17 @@ export function CreatePersonDialog({
                 onChange={(event) => setCompany(event.target.value)}
               />
             </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="person-notes">Notes</Label>
+            <Textarea
+              id="person-notes"
+              placeholder="Add any notes…"
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              rows={3}
+            />
           </div>
 
           <div className="flex flex-col gap-1.5">

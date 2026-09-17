@@ -1,6 +1,12 @@
 import { getToken } from "@/lib/auth-storage";
 import type {
   ApiUser,
+  Event,
+  EventProperties,
+  Expense,
+  ExpenseProperties,
+  FileProperties,
+  FileRecord,
   GenericObject,
   JsonValue,
   Note,
@@ -138,6 +144,46 @@ export const api = {
       }),
     remove: (id: string) => request<Note>(`/api/notes/${id}`, { method: "DELETE" }),
   },
+  events: {
+    list: () => request<Event[]>("/api/events"),
+    get: (id: string) => request<Event>(`/api/events/${id}`),
+    create: (input: { title: string; properties: EventProperties }) =>
+      request<Event>("/api/events", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    update: (id: string, input: { title?: string; properties?: EventProperties }) =>
+      request<Event>(`/api/events/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(input),
+      }),
+    remove: (id: string) => request<Event>(`/api/events/${id}`, { method: "DELETE" }),
+  },
+  files: {
+    list: () => request<FileRecord[]>("/api/files"),
+    get: (id: string) => request<FileRecord>(`/api/files/${id}`),
+    create: (input: { properties: FileProperties }) =>
+      request<FileRecord>("/api/files", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    remove: (id: string) => request<FileRecord>(`/api/files/${id}`, { method: "DELETE" }),
+  },
+  expenses: {
+    list: () => request<Expense[]>("/api/expenses"),
+    get: (id: string) => request<Expense>(`/api/expenses/${id}`),
+    create: (input: { title: string; properties: ExpenseProperties }) =>
+      request<Expense>("/api/expenses", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    update: (id: string, input: { title?: string; properties?: ExpenseProperties }) =>
+      request<Expense>(`/api/expenses/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(input),
+      }),
+    remove: (id: string) => request<Expense>(`/api/expenses/${id}`, { method: "DELETE" }),
+  },
   relations: {
     create: (input: { sourceId: string; targetId: string; type: RelationType }) =>
       request<Relation>("/api/relations", {
@@ -155,5 +201,8 @@ export const api = {
       if (type) params.set("type", type);
       return request<GenericObject[]>(`/api/search?${params.toString()}`);
     },
+  },
+  timeline: {
+    list: () => request<GenericObject[]>("/api/timeline"),
   },
 };

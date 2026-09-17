@@ -32,10 +32,6 @@ import { cn } from "@/lib/utils";
 
 const NO_STATUS = "none";
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
-}
-
 export function ProjectDetailSheet({
   project,
   open,
@@ -287,11 +283,6 @@ function ProjectDetailForm({
               ))}
             </div>
           )}
-        </div>
-
-        <div className="mt-6 flex flex-col gap-1 text-xs text-muted-foreground">
-          <span>Created {formatDate(project.createdAt)}</span>
-          <span>Updated {formatDate(project.updatedAt)}</span>
         </div>
       </div>
 

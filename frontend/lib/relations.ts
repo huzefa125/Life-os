@@ -12,6 +12,14 @@ export function findAssignee(connections: ObjectConnection[]): Assignee | null {
   return match ? { person: match.object, relationId: match.relation.id } : null;
 }
 
+/** Tasks assigned to this person: from the person's own connections, the
+ * task is the relation's source, so it shows up as "incoming". */
+export function findAssignedTasks(connections: ObjectConnection[]): GenericObject[] {
+  return connections
+    .filter((c) => c.relation.type === "assigned_to" && c.relation.direction === "incoming")
+    .map((c) => c.object);
+}
+
 export interface ParentProject {
   project: GenericObject;
   relationId: string;

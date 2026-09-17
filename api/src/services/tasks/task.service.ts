@@ -14,6 +14,7 @@ export async function createTask(userId: string, input: CreateTaskBody) {
         status: input.properties?.status ?? DEFAULT_STATUS,
         ...(input.properties?.priority !== undefined ? { priority: input.properties.priority } : {}),
         ...(input.properties?.dueDate !== undefined ? { dueDate: input.properties.dueDate } : {}),
+        ...(input.properties?.notes !== undefined ? { notes: input.properties.notes } : {}),
       },
     },
   });

@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { api, ApiError } from "@/lib/api-client";
 import { ensureSelfPerson } from "@/lib/self-person";
 import { PRIORITY_LABEL, STATUS_LABEL } from "@/lib/task-meta";
@@ -39,13 +40,17 @@ export function CreateTaskDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated: (task: Task) => void;
+  onCreated: (
+    task: Task,
+    extra: { assignee: GenericObject | null; project: GenericObject | null }
+  ) => void;
 }) {
   const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [status, setStatus] = useState<TaskStatus>("todo");
   const [priority, setPriority] = useState<TaskPriority | typeof NO_PRIORITY>(NO_PRIORITY);
   const [dueDate, setDueDate] = useState("");
+  const [notes, setNotes] = useState("");
   const [assigneeId, setAssigneeId] = useState(UNASSIGNED);
   const [selectedAssignee, setSelectedAssignee] = useState<GenericObject | null>(null);
   const [selfPerson, setSelfPerson] = useState<GenericObject | null>(null);
@@ -84,6 +89,7 @@ export function CreateTaskDialog({
     setStatus("todo");
     setPriority(NO_PRIORITY);
     setDueDate("");
+    setNotes("");
     setAssigneeId(UNASSIGNED);
     setSelectedAssignee(null);
     setProjectId(NO_PROJECT);
@@ -101,6 +107,7 @@ export function CreateTaskDialog({
           status,
           ...(priority !== NO_PRIORITY ? { priority } : {}),
           ...(dueDate ? { dueDate } : {}),
+          ...(notes.trim() ? { notes: notes.trim() } : {}),
         },
       });
       if (assigneeId !== UNASSIGNED) {
@@ -117,7 +124,7 @@ export function CreateTaskDialog({
           toast.error("Task created, but couldn't link the project");
         }
       }
-      onCreated(task);
+      onCreated(task, { assignee: selectedAssignee, project: selectedProject });
       toast.success(`${task.title} added`);
       reset();
       onOpenChange(false);
@@ -218,6 +225,17 @@ export function CreateTaskDialog({
               type="date"
               value={dueDate}
               onChange={(event) => setDueDate(event.target.value)}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="task-notes">Notes</Label>
+            <Textarea
+              id="task-notes"
+              placeholder="Add any notes…"
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              rows={3}
             />
           </div>
 

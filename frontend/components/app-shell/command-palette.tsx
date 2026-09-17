@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, CheckSquare, FileText, FolderKanban, User as UserIcon } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 import {
   Command,
@@ -15,14 +15,8 @@ import {
 } from "@/components/ui/command";
 import { api } from "@/lib/api-client";
 import type { GenericObject } from "@/lib/types";
+import { OBJECT_TYPE_META } from "@/lib/type-meta";
 import { navItems } from "./nav-items";
-
-const SEARCHABLE_TYPES: Record<string, { label: string; icon: typeof UserIcon; basePath: string }> = {
-  person: { label: "People", icon: UserIcon, basePath: "/people" },
-  task: { label: "Tasks", icon: CheckSquare, basePath: "/tasks" },
-  project: { label: "Projects", icon: FolderKanban, basePath: "/projects" },
-  note: { label: "Notes", icon: FileText, basePath: "/notes" },
-};
 
 export function CommandPalette({
   open,
@@ -87,7 +81,7 @@ export function CommandPalette({
     (item) => item.enabled && item.label.toLowerCase().includes(query.toLowerCase())
   );
 
-  const groupedResults = Object.entries(SEARCHABLE_TYPES).map(([type, meta]) => ({
+  const groupedResults = Object.entries(OBJECT_TYPE_META).map(([type, meta]) => ({
     type,
     meta,
     items: results.filter((r) => r.type === type),

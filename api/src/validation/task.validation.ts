@@ -16,6 +16,7 @@ const taskPropertiesSchema = z
       error: `priority must be one of: ${TASK_PRIORITIES.join(", ")}`,
     }).optional(),
     dueDate: z.string().date("dueDate must be a valid date (YYYY-MM-DD)").optional(),
+    notes: z.string().optional(),
   })
   .strict();
 

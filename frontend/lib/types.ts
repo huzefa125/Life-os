@@ -14,12 +14,9 @@ export interface ApiUser {
 
 export interface Person {
   id: string;
-  userId: string;
   type: "person";
   title: string;
   properties: Record<string, JsonValue> | null;
-  createdAt: string;
-  updatedAt: string;
 }
 
 export type TaskStatus = "todo" | "in_progress" | "completed";
@@ -29,16 +26,14 @@ export interface TaskProperties {
   status: TaskStatus;
   priority?: TaskPriority;
   dueDate?: string;
+  notes?: string;
 }
 
 export interface Task {
   id: string;
-  userId: string;
   type: "task";
   title: string;
   properties: TaskProperties | null;
-  createdAt: string;
-  updatedAt: string;
 }
 
 export interface ProjectProperties {
@@ -49,12 +44,9 @@ export interface ProjectProperties {
 
 export interface Project {
   id: string;
-  userId: string;
   type: "project";
   title: string;
   properties: ProjectProperties | null;
-  createdAt: string;
-  updatedAt: string;
 }
 
 export interface NoteProperties {
@@ -63,22 +55,64 @@ export interface NoteProperties {
 
 export interface Note {
   id: string;
-  userId: string;
   type: "note";
   title: string;
   properties: NoteProperties | null;
-  createdAt: string;
-  updatedAt: string;
+}
+
+export type EventMode = "online" | "in_person";
+
+export interface EventProperties {
+  description?: string;
+  startAt: string;
+  endAt: string;
+  mode?: EventMode;
+  location?: string;
+  link?: string;
+}
+
+export interface Event {
+  id: string;
+  type: "event";
+  title: string;
+  properties: EventProperties | null;
+}
+
+export interface FileProperties {
+  url: string;
+  fileName: string;
+  mimeType: string;
+  size: number;
+}
+
+// Named FileRecord, not File, to avoid shadowing the browser's built-in File type.
+export interface FileRecord {
+  id: string;
+  type: "file";
+  title: string;
+  properties: FileProperties | null;
+}
+
+export interface ExpenseProperties {
+  amount: number;
+  currency: string;
+  category: string;
+  date: string;
+  description?: string;
+}
+
+export interface Expense {
+  id: string;
+  type: "expense";
+  title: string;
+  properties: ExpenseProperties | null;
 }
 
 export interface GenericObject {
   id: string;
-  userId: string;
   type: string;
   title: string;
   properties: Record<string, JsonValue> | null;
-  createdAt: string;
-  updatedAt: string;
 }
 
 export type RelationType =
@@ -93,11 +127,9 @@ export type RelationType =
 
 export interface Relation {
   id: string;
-  userId: string;
   sourceId: string;
   targetId: string;
   type: RelationType;
-  createdAt: string;
 }
 
 export interface ObjectConnection {

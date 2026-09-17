@@ -21,22 +21,20 @@ import { findParentProject } from "@/lib/relations";
 import type { GenericObject, Note } from "@/lib/types";
 import { NO_PROJECT, ProjectSelect } from "@/components/projects/project-select";
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
-}
-
 export function NoteDetailSheet({
   note,
   open,
   onOpenChange,
   onUpdated,
   onDeleted,
+  onProjectChanged,
 }: {
   note: Note | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onUpdated: (note: Note) => void;
   onDeleted: (id: string) => void;
+  onProjectChanged?: (noteId: string, project: GenericObject | null) => void;
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -48,6 +46,7 @@ export function NoteDetailSheet({
             onOpenChange={onOpenChange}
             onUpdated={onUpdated}
             onDeleted={onDeleted}
+            onProjectChanged={onProjectChanged}
           />
         ) : null}
       </SheetContent>
@@ -60,11 +59,13 @@ function NoteDetailForm({
   onOpenChange,
   onUpdated,
   onDeleted,
+  onProjectChanged,
 }: {
   note: Note;
   onOpenChange: (open: boolean) => void;
   onUpdated: (note: Note) => void;
   onDeleted: (id: string) => void;
+  onProjectChanged?: (noteId: string, project: GenericObject | null) => void;
 }) {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.properties?.content ?? "");
@@ -139,6 +140,7 @@ function NoteDetailForm({
             : null;
         setProjectRelationId(nextRelationId);
         setLoadedProjectId(projectId);
+        onProjectChanged?.(note.id, selectedProject);
       }
 
       toast.success("Saved");
@@ -193,11 +195,6 @@ function NoteDetailForm({
           rows={12}
           className="resize-none"
         />
-
-        <div className="mt-6 flex flex-col gap-1 text-xs text-muted-foreground">
-          <span>Created {formatDate(note.createdAt)}</span>
-          <span>Updated {formatDate(note.updatedAt)}</span>
-        </div>
       </div>
 
       <Separator />

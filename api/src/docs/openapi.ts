@@ -63,7 +63,6 @@ const loginResponseSchema = z
 const personSchema = z
   .object({
     id: z.uuid().openapi({ example: "44e159ff-d349-4716-848f-f0102556ac69" }),
-    userId: z.uuid(),
     type: z.literal("person"),
     title: z.string().openapi({ example: "Rahul Shah" }),
     properties: z
@@ -72,15 +71,12 @@ const personSchema = z
       .openapi({
         example: { company: "Acme", role: "Developer", email: "rahul@example.com" },
       }),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
   })
   .openapi("Person");
 
 const taskSchema = z
   .object({
     id: z.uuid(),
-    userId: z.uuid(),
     type: z.literal("task"),
     title: z.string().openapi({ example: "Build LifeOS API" }),
     properties: z
@@ -88,17 +84,15 @@ const taskSchema = z
         status: z.enum(["todo", "in_progress", "completed"]),
         priority: z.enum(["low", "medium", "high"]).optional(),
         dueDate: z.string().optional().openapi({ example: "2026-09-10" }),
+        notes: z.string().optional().openapi({ example: "Waiting on legal sign-off" }),
       })
       .nullable(),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
   })
   .openapi("Task");
 
 const projectSchema = z
   .object({
     id: z.uuid(),
-    userId: z.uuid(),
     type: z.literal("project"),
     title: z.string().openapi({ example: "LifeOS" }),
     properties: z
@@ -108,15 +102,12 @@ const projectSchema = z
         deadline: z.string().optional().openapi({ example: "2026-09-30" }),
       })
       .nullable(),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
   })
   .openapi("Project");
 
 const noteSchema = z
   .object({
     id: z.uuid(),
-    userId: z.uuid(),
     type: z.literal("note"),
     title: z.string().openapi({ example: "Dashboard ideas" }),
     properties: z
@@ -124,15 +115,12 @@ const noteSchema = z
         content: z.string().openapi({ example: "Ideas for LifeOS dashboard..." }),
       })
       .nullable(),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
   })
   .openapi("Note");
 
 const eventSchema = z
   .object({
     id: z.uuid(),
-    userId: z.uuid(),
     type: z.literal("event"),
     title: z.string().openapi({ example: "Client meeting" }),
     properties: z
@@ -140,18 +128,17 @@ const eventSchema = z
         description: z.string().optional().openapi({ example: "Client meeting" }),
         startAt: z.string().datetime().openapi({ example: "2026-09-10T10:00:00Z" }),
         endAt: z.string().datetime().openapi({ example: "2026-09-10T11:00:00Z" }),
+        mode: z.enum(["online", "in_person"]).optional().openapi({ example: "in_person" }),
         location: z.string().optional().openapi({ example: "Ahmedabad" }),
+        link: z.string().optional().openapi({ example: "https://meet.google.com/abc-defg-hij" }),
       })
       .nullable(),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
   })
   .openapi("Event");
 
 const fileSchema = z
   .object({
     id: z.uuid(),
-    userId: z.uuid(),
     type: z.literal("file"),
     title: z.string().openapi({ example: "resume.pdf" }),
     properties: z
@@ -162,15 +149,12 @@ const fileSchema = z
         size: z.number().int().openapi({ example: 123456 }),
       })
       .nullable(),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
   })
   .openapi("File");
 
 const expenseSchema = z
   .object({
     id: z.uuid(),
-    userId: z.uuid(),
     type: z.literal("expense"),
     title: z.string().openapi({ example: "Lunch" }),
     properties: z
@@ -182,31 +166,24 @@ const expenseSchema = z
         description: z.string().optional().openapi({ example: "Lunch" }),
       })
       .nullable(),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
   })
   .openapi("Expense");
 
 const relationSchema = z
   .object({
     id: z.uuid(),
-    userId: z.uuid(),
     sourceId: z.uuid(),
     targetId: z.uuid(),
     type: z.string().openapi({ example: "works_on" }),
-    createdAt: z.string().datetime(),
   })
   .openapi("Relation");
 
 const genericObjectSchema = z
   .object({
     id: z.uuid(),
-    userId: z.uuid(),
     type: z.string().openapi({ example: "person" }),
     title: z.string(),
     properties: z.record(z.string(), z.unknown()).nullable(),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
   })
   .openapi("Object");
 

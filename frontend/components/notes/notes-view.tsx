@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FileText, List, Plus, Search } from "lucide-react";
+import { FileText, FolderKanban, List, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -17,13 +17,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { api, ApiError } from "@/lib/api-client";
-import type { Note } from "@/lib/types";
+import { findParentProject } from "@/lib/relations";
+import type { GenericObject, Note } from "@/lib/types";
 import { CreateNoteDialog } from "./create-note-dialog";
 import { NoteDetailSheet } from "./note-detail-sheet";
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, { dateStyle: "medium" });
-}
 
 export function NotesView() {
   const router = useRouter();
@@ -35,9 +32,25 @@ export function NotesView() {
   const [createOpen, setCreateOpen] = useState(false);
   const [selected, setSelected] = useState<Note | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [projectByNote, setProjectByNote] = useState<Record<string, GenericObject | null>>({});
 
   useEffect(() => {
     let cancelled = false;
+
+    async function loadProjects(list: Note[]) {
+      const entries = await Promise.all(
+        list.map(async (n) => {
+          try {
+            const connections = await api.objects.connections(n.id);
+            return [n.id, findParentProject(connections.connections, "has_note")?.project ?? null] as const;
+          } catch {
+            return [n.id, null] as const;
+          }
+        })
+      );
+      if (!cancelled) setProjectByNote(Object.fromEntries(entries));
+    }
+
     api.notes
       .list()
       .then((data) => {
@@ -52,6 +65,7 @@ export function NotesView() {
           }
           router.replace("/notes");
         }
+        loadProjects(data);
       })
       .catch((error) => {
         toast.error(error instanceof ApiError ? error.message : "Couldn't load notes");
@@ -80,8 +94,9 @@ export function NotesView() {
     setDetailOpen(true);
   }
 
-  function handleCreated(note: Note) {
+  function handleCreated(note: Note, extra: { project: GenericObject | null }) {
     setNotes((prev) => [note, ...prev]);
+    setProjectByNote((prev) => ({ ...prev, [note.id]: extra.project }));
   }
 
   function handleUpdated(note: Note) {
@@ -91,6 +106,10 @@ export function NotesView() {
 
   function handleDeleted(id: string) {
     setNotes((prev) => prev.filter((n) => n.id !== id));
+  }
+
+  function handleProjectChanged(noteId: string, project: GenericObject | null) {
+    setProjectByNote((prev) => ({ ...prev, [noteId]: project }));
   }
 
   return (
@@ -166,8 +185,8 @@ export function NotesView() {
                 <TableHead className="text-[13px] font-medium text-muted-foreground">
                   Preview
                 </TableHead>
-                <TableHead className="pr-0 text-right text-[13px] font-medium text-muted-foreground">
-                  Updated
+                <TableHead className="pr-0 text-[13px] font-medium text-muted-foreground">
+                  Project
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -179,11 +198,18 @@ export function NotesView() {
                   onClick={() => openNote(note)}
                 >
                   <TableCell className="py-2 pl-0 text-[13px] font-medium">{note.title}</TableCell>
-                  <TableCell className="max-w-sm truncate text-[13px] text-muted-foreground">
+                  <TableCell className="max-w-md truncate text-[13px] text-muted-foreground">
                     {note.properties?.content ?? "—"}
                   </TableCell>
-                  <TableCell className="pr-0 text-right text-[13px] text-muted-foreground">
-                    {formatDate(note.updatedAt)}
+                  <TableCell className="pr-0 text-[13px]">
+                    {projectByNote[note.id] ? (
+                      <span className="flex items-center gap-1.5 text-foreground/80">
+                        <FolderKanban className="size-3.5 text-blue-600" />
+                        <span className="truncate">{projectByNote[note.id]!.title}</span>
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -199,6 +225,7 @@ export function NotesView() {
         onOpenChange={setDetailOpen}
         onUpdated={handleUpdated}
         onDeleted={handleDeleted}
+        onProjectChanged={handleProjectChanged}
       />
     </div>
   );

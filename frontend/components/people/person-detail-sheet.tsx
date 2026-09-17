@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { CheckSquare, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -16,10 +17,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import { api, ApiError } from "@/lib/api-client";
 import { avatarColor, initials } from "@/lib/avatar-color";
+import { findAssignedTasks } from "@/lib/relations";
+import { STATUS_BADGE, STATUS_LABEL } from "@/lib/task-meta";
 import { cn } from "@/lib/utils";
-import type { JsonValue, Person } from "@/lib/types";
+import type { GenericObject, JsonValue, Person, TaskStatus } from "@/lib/types";
 import {
   extractString,
   PropertyEditor,
@@ -28,16 +32,9 @@ import {
   type PropertyRow,
 } from "./property-editor";
 
-const NAMED_FIELDS = ["email", "company"];
+const NAMED_FIELDS = ["email", "company", "notes"];
 // Not user-editable, but must survive a save since properties are replaced wholesale.
 const HIDDEN_FIELDS = ["self"];
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleString(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
-}
 
 export function PersonDetailSheet({
   person,
@@ -80,15 +77,43 @@ function PersonDetailForm({
   onUpdated: (person: Person) => void;
   onDeleted: (id: string) => void;
 }) {
+  const router = useRouter();
   const [title, setTitle] = useState(person.title);
   const [email, setEmail] = useState(() => extractString(person.properties, "email"));
   const [company, setCompany] = useState(() => extractString(person.properties, "company"));
+  const [notes, setNotes] = useState(() => extractString(person.properties, "notes"));
   const [rows, setRows] = useState<PropertyRow[]>(() =>
     propertiesToRows(person.properties, [...NAMED_FIELDS, ...HIDDEN_FIELDS])
   );
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  const [assignedTasks, setAssignedTasks] = useState<GenericObject[]>([]);
+  const [assignedTasksLoading, setAssignedTasksLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.objects
+      .connections(person.id)
+      .then((data) => {
+        if (!cancelled) setAssignedTasks(findAssignedTasks(data.connections));
+      })
+      .catch(() => {
+        if (!cancelled) toast.error("Couldn't load assigned tasks");
+      })
+      .finally(() => {
+        if (!cancelled) setAssignedTasksLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [person.id]);
+
+  function goToTask(taskId: string) {
+    onOpenChange(false);
+    router.push(`/tasks?focus=${taskId}`);
+  }
 
   function buildProperties() {
     const hidden: Record<string, JsonValue> = {};
@@ -101,6 +126,7 @@ function PersonDetailForm({
       ...hidden,
       ...(email.trim() ? { email: email.trim() } : {}),
       ...(company.trim() ? { company: company.trim() } : {}),
+      ...(notes.trim() ? { notes: notes.trim() } : {}),
       ...rowsToProperties(rows),
     };
   }
@@ -185,13 +211,58 @@ function PersonDetailForm({
         </div>
 
         <div className="mt-4 flex flex-col gap-1.5">
+          <Label htmlFor="detail-notes">Notes</Label>
+          <Textarea
+            id="detail-notes"
+            placeholder="Add any notes…"
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
+            rows={3}
+          />
+        </div>
+
+        <div className="mt-4 flex flex-col gap-1.5">
           <Label>Other properties</Label>
           <PropertyEditor rows={rows} onChange={setRows} />
         </div>
 
-        <div className="mt-6 flex flex-col gap-1 text-xs text-muted-foreground">
-          <span>Created {formatDate(person.createdAt)}</span>
-          <span>Updated {formatDate(person.updatedAt)}</span>
+        <div className="mt-4 flex flex-col gap-1.5">
+          <Label className="flex items-center gap-1.5">
+            <CheckSquare className="size-3.5" />
+            Assigned tasks
+            {!assignedTasksLoading ? (
+              <span className="text-muted-foreground">({assignedTasks.length})</span>
+            ) : null}
+          </Label>
+          {assignedTasksLoading ? (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : assignedTasks.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No tasks assigned yet.</p>
+          ) : (
+            <div className="flex flex-col gap-1 rounded-lg border">
+              {assignedTasks.map((task) => {
+                const taskStatus = (task.properties?.status as TaskStatus | undefined) ?? "todo";
+                return (
+                  <button
+                    key={task.id}
+                    type="button"
+                    onClick={() => goToTask(task.id)}
+                    className="flex items-center gap-2 border-b px-2.5 py-2 text-left text-sm last:border-b-0 hover:bg-muted/50"
+                  >
+                    <span className="flex-1 truncate">{task.title}</span>
+                    <span
+                      className={cn(
+                        "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium",
+                        STATUS_BADGE[taskStatus]
+                      )}
+                    >
+                      {STATUS_LABEL[taskStatus]}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 

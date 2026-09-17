@@ -27,7 +27,7 @@ export function CreateNoteDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated: (note: Note) => void;
+  onCreated: (note: Note, extra: { project: GenericObject | null }) => void;
 }) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -63,7 +63,7 @@ export function CreateNoteDialog({
           toast.error("Note created, but couldn't link the project");
         }
       }
-      onCreated(note);
+      onCreated(note, { project: selectedProject });
       toast.success(`${note.title} added`);
       reset();
       onOpenChange(false);

@@ -33,11 +33,7 @@ function propertyValue(person: Person, key: string) {
   return JSON.stringify(value);
 }
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, { dateStyle: "medium" });
-}
-
-const BUILT_IN_KEYS = ["email", "company", "self"];
+const BUILT_IN_KEYS = ["email", "company", "notes", "self"];
 
 function capitalize(key: string) {
   return key.replace(/[_-]+/g, " ").replace(/^./, (c) => c.toUpperCase());
@@ -220,9 +216,6 @@ export function PeopleView() {
                     </span>
                   </TableHead>
                 ))}
-                <TableHead className="pr-0 text-right text-[13px] font-medium text-muted-foreground">
-                  Created
-                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -260,9 +253,6 @@ export function PeopleView() {
                       {propertyValue(person, key) ?? "—"}
                     </TableCell>
                   ))}
-                  <TableCell className="pr-0 text-right text-[13px] text-muted-foreground">
-                    {formatDate(person.createdAt)}
-                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

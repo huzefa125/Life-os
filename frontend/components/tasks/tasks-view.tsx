@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CheckSquare, List, Plus, Search, UserRound } from "lucide-react";
+import { CheckSquare, FolderKanban, List, Plus, Search, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/table";
 import { api, ApiError } from "@/lib/api-client";
 import { avatarColor, initials } from "@/lib/avatar-color";
-import { findAssignee } from "@/lib/relations";
+import { findAssignee, findParentProject } from "@/lib/relations";
 import { isSelf } from "@/lib/self-person";
 import { formatDueDate, isOverdue, PRIORITY_BADGE, PRIORITY_LABEL, STATUS_BADGE, STATUS_LABEL } from "@/lib/task-meta";
 import type { GenericObject, Task } from "@/lib/types";
@@ -39,22 +39,29 @@ export function TasksView() {
   const [selected, setSelected] = useState<Task | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [assigneeByTask, setAssigneeByTask] = useState<Record<string, GenericObject | null>>({});
+  const [projectByTask, setProjectByTask] = useState<Record<string, GenericObject | null>>({});
 
   useEffect(() => {
     let cancelled = false;
 
-    async function loadAssignees(list: Task[]) {
+    async function loadConnections(list: Task[]) {
       const entries = await Promise.all(
         list.map(async (t) => {
           try {
             const connections = await api.objects.connections(t.id);
-            return [t.id, findAssignee(connections.connections)?.person ?? null] as const;
+            return [
+              t.id,
+              findAssignee(connections.connections)?.person ?? null,
+              findParentProject(connections.connections, "has_task")?.project ?? null,
+            ] as const;
           } catch {
-            return [t.id, null] as const;
+            return [t.id, null, null] as const;
           }
         })
       );
-      if (!cancelled) setAssigneeByTask(Object.fromEntries(entries));
+      if (cancelled) return;
+      setAssigneeByTask(Object.fromEntries(entries.map(([id, assignee]) => [id, assignee])));
+      setProjectByTask(Object.fromEntries(entries.map(([id, , project]) => [id, project])));
     }
 
     api.tasks
@@ -71,7 +78,7 @@ export function TasksView() {
           }
           router.replace("/tasks");
         }
-        loadAssignees(data);
+        loadConnections(data);
       })
       .catch((error) => {
         toast.error(error instanceof ApiError ? error.message : "Couldn't load tasks");
@@ -96,8 +103,13 @@ export function TasksView() {
     setDetailOpen(true);
   }
 
-  function handleCreated(task: Task) {
+  function handleCreated(
+    task: Task,
+    extra: { assignee: GenericObject | null; project: GenericObject | null }
+  ) {
     setTasks((prev) => [task, ...prev]);
+    setAssigneeByTask((prev) => ({ ...prev, [task.id]: extra.assignee }));
+    setProjectByTask((prev) => ({ ...prev, [task.id]: extra.project }));
   }
 
   function handleUpdated(task: Task) {
@@ -111,6 +123,10 @@ export function TasksView() {
 
   function handleAssigneeChanged(taskId: string, person: GenericObject | null) {
     setAssigneeByTask((prev) => ({ ...prev, [taskId]: person }));
+  }
+
+  function handleProjectChanged(taskId: string, project: GenericObject | null) {
+    setProjectByTask((prev) => ({ ...prev, [taskId]: project }));
   }
 
   async function toggleComplete(task: Task, checked: boolean) {
@@ -208,6 +224,7 @@ export function TasksView() {
                 <TableHead className="w-8 pl-0" />
                 <TableHead className="text-[13px] font-medium text-muted-foreground">Name</TableHead>
                 <TableHead className="text-[13px] font-medium text-muted-foreground">Assignee</TableHead>
+                <TableHead className="text-[13px] font-medium text-muted-foreground">Project</TableHead>
                 <TableHead className="text-[13px] font-medium text-muted-foreground">Status</TableHead>
                 <TableHead className="text-[13px] font-medium text-muted-foreground">Priority</TableHead>
                 <TableHead className="pr-0 text-right text-[13px] font-medium text-muted-foreground">
@@ -268,6 +285,16 @@ export function TasksView() {
                         </span>
                       )}
                     </TableCell>
+                    <TableCell className="text-[13px]">
+                      {projectByTask[task.id] ? (
+                        <span className="flex items-center gap-1.5 text-foreground/80">
+                          <FolderKanban className="size-3.5 text-blue-600" />
+                          <span className="truncate">{projectByTask[task.id]!.title}</span>
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <span
                         className={cn(
@@ -316,6 +343,7 @@ export function TasksView() {
         onUpdated={handleUpdated}
         onDeleted={handleDeleted}
         onAssigneeChanged={handleAssigneeChanged}
+        onProjectChanged={handleProjectChanged}
       />
     </div>
   );
