@@ -34,7 +34,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { api, ApiError } from "@/lib/api-client";
-import { CATEGORY_KIND_LABELS } from "@/lib/money-meta";
+import { CATEGORY_KIND_BADGE, CATEGORY_KIND_LABELS } from "@/lib/money-meta";
 import type { Category, CategoryKind, CategoryProperties } from "@/lib/types";
 import { MoneyTabs } from "./money-tabs";
 
@@ -120,8 +120,7 @@ export function CategoriesView() {
             <TableHeader>
               <TableRow className="hover:bg-transparent">
                 <TableHead className="pl-0 text-[13px]">Name</TableHead>
-                <TableHead className="text-[13px]">Kind</TableHead>
-                <TableHead className="pr-0 text-right text-[13px]">Color</TableHead>
+                <TableHead className="pr-0 text-right text-[13px]">Kind</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -134,16 +133,22 @@ export function CategoriesView() {
                     setDetailOpen(true);
                   }}
                 >
-                  <TableCell className="py-2 pl-0 text-[13px] font-medium">{category.title}</TableCell>
-                  <TableCell className="text-[13px] text-muted-foreground">
-                    {category.properties ? CATEGORY_KIND_LABELS[category.properties.kind] : "-"}
+                  <TableCell className="py-2 pl-0 text-[13px] font-medium">
+                    <span className="flex items-center gap-2">
+                      <span
+                        className="inline-block size-2.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: category.properties?.color ?? "var(--muted-foreground)" }}
+                      />
+                      {category.title}
+                    </span>
                   </TableCell>
                   <TableCell className="pr-0 text-right text-[13px]">
-                    {category.properties?.color ? (
+                    {category.properties ? (
                       <span
-                        className="ml-auto inline-block size-3 rounded-full"
-                        style={{ backgroundColor: category.properties.color }}
-                      />
+                        className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${CATEGORY_KIND_BADGE[category.properties.kind]}`}
+                      >
+                        {CATEGORY_KIND_LABELS[category.properties.kind]}
+                      </span>
                     ) : (
                       "-"
                     )}

@@ -35,12 +35,31 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { api, ApiError } from "@/lib/api-client";
-import { formatMoney, formatMoneyDate, TRANSACTION_TYPE_COLORS, TRANSACTION_TYPE_LABELS } from "@/lib/money-meta";
+import {
+  formatMoney,
+  formatMoneyDate,
+  getGroupPeriodLabel,
+  getGroupPeriodStart,
+  TRANSACTION_TYPE_BADGE,
+  TRANSACTION_TYPE_COLORS,
+  TRANSACTION_TYPE_ICON,
+  TRANSACTION_TYPE_LABELS,
+  type TransactionGroupBy,
+} from "@/lib/money-meta";
 import type { Account, Category, Transaction, TransactionProperties, TransactionType } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import { MoneyTabs } from "./money-tabs";
 
 const TRANSACTION_TYPES = Object.keys(TRANSACTION_TYPE_LABELS) as TransactionType[];
 const ALL_FILTER = "all";
+
+const GROUP_BY_OPTIONS: TransactionGroupBy[] = ["none", "day", "week", "month"];
+const GROUP_BY_LABELS: Record<TransactionGroupBy, string> = {
+  none: "List",
+  day: "Day",
+  week: "Week",
+  month: "Month",
+};
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -75,6 +94,7 @@ export function TransactionsView() {
   const [typeFilter, setTypeFilter] = useState<TransactionType | typeof ALL_FILTER>(ALL_FILTER);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [groupBy, setGroupBy] = useState<TransactionGroupBy>("none");
 
   const accountById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
   const categoryById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
@@ -125,6 +145,41 @@ export function TransactionsView() {
     });
   }, [transactions, query, accountFilter, categoryFilter, typeFilter, dateFrom, dateTo]);
 
+  const groups = useMemo(() => {
+    if (groupBy === "none") return null;
+
+    const byPeriod = new Map<string, Transaction[]>();
+    for (const transaction of filtered) {
+      const date = transaction.properties?.date;
+      if (!date) continue;
+      const periodStart = getGroupPeriodStart(date, groupBy);
+      const bucket = byPeriod.get(periodStart);
+      if (bucket) bucket.push(transaction);
+      else byPeriod.set(periodStart, [transaction]);
+    }
+
+    return Array.from(byPeriod.entries())
+      .sort(([a], [b]) => (a < b ? 1 : -1))
+      .map(([periodStart, items]) => {
+        const sorted = [...items].sort((a, b) => (a.properties?.date ?? "") < (b.properties?.date ?? "") ? 1 : -1);
+        const income = new Map<string, number>();
+        const expense = new Map<string, number>();
+        for (const item of sorted) {
+          const props = item.properties;
+          if (!props) continue;
+          if (props.transactionType === "income") income.set(props.currency, (income.get(props.currency) ?? 0) + props.amount);
+          else if (props.transactionType === "expense") expense.set(props.currency, (expense.get(props.currency) ?? 0) + props.amount);
+        }
+        return { periodStart, label: getGroupPeriodLabel(periodStart, groupBy), items: sorted, income, expense };
+      });
+  }, [filtered, groupBy]);
+
+  function formatTotals(totals: Map<string, number>) {
+    return Array.from(totals.entries())
+      .map(([currency, total]) => formatMoney(total, currency))
+      .join(" · ");
+  }
+
   function accountLabel(id?: string) {
     if (!id) return "-";
     return accountById.get(id)?.title ?? "-";
@@ -142,6 +197,44 @@ export function TransactionsView() {
     return `${sign}${formatMoney(props.amount, props.currency)}`;
   }
 
+  function renderRow(transaction: Transaction) {
+    const props = transaction.properties;
+    const Icon = props ? TRANSACTION_TYPE_ICON[props.transactionType] : ArrowRightLeft;
+    return (
+      <TableRow
+        key={transaction.id}
+        className="cursor-pointer border-border/70"
+        onClick={() => {
+          setSelected(transaction);
+          setDetailOpen(true);
+        }}
+      >
+        <TableCell className="w-8 py-2 pl-0">
+          <span
+            className={`flex size-6 items-center justify-center rounded-full ${props ? TRANSACTION_TYPE_BADGE[props.transactionType] : "bg-muted text-muted-foreground"}`}
+          >
+            <Icon className="size-3" />
+          </span>
+        </TableCell>
+        <TableCell className="py-2 text-[13px] text-muted-foreground">{formatMoneyDate(props?.date)}</TableCell>
+        <TableCell className="text-[13px] font-medium">{transaction.title}</TableCell>
+        <TableCell className="text-[13px] text-muted-foreground">
+          {props?.transactionType === "transfer"
+            ? `${accountLabel(props.accountId)} → ${accountLabel(props.toAccountId)}`
+            : categoryLabel(props?.categoryId)}
+        </TableCell>
+        <TableCell className="text-[13px] text-muted-foreground">
+          {props?.transactionType === "transfer" ? "-" : accountLabel(props?.accountId)}
+        </TableCell>
+        <TableCell
+          className={`pr-0 text-right text-[13px] font-medium tabular-nums ${props ? TRANSACTION_TYPE_COLORS[props.transactionType] : ""}`}
+        >
+          {signedAmount(transaction)}
+        </TableCell>
+      </TableRow>
+    );
+  }
+
   return (
     <div className="flex min-h-full flex-col bg-background">
       <div className="flex items-center gap-2 px-6 py-3">
@@ -150,15 +243,34 @@ export function TransactionsView() {
         </div>
         <h1 className="text-[15px] font-semibold">Money</h1>
         {!loading ? <span className="text-[13px] text-muted-foreground">{filtered.length}</span> : null}
-        <Button
-          size="sm"
-          className="ml-auto"
-          disabled={accounts.length === 0}
-          onClick={() => setCreateOpen(true)}
-        >
-          <Plus className="size-3.5" />
-          New transaction
-        </Button>
+
+        <div className="ml-auto flex items-center gap-3">
+          <div className="flex gap-1">
+            {GROUP_BY_OPTIONS.map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => setGroupBy(option)}
+                className={cn(
+                  "rounded-md px-2 py-1 text-[12px] font-medium transition-colors",
+                  groupBy === option
+                    ? "bg-foreground text-background"
+                    : "text-muted-foreground hover:bg-accent/50"
+                )}
+              >
+                {GROUP_BY_LABELS[option]}
+              </button>
+            ))}
+          </div>
+          <Button
+            size="sm"
+            disabled={accounts.length === 0}
+            onClick={() => setCreateOpen(true)}
+          >
+            <Plus className="size-3.5" />
+            New transaction
+          </Button>
+        </div>
       </div>
 
       <MoneyTabs />
@@ -266,48 +378,40 @@ export function TransactionsView() {
               <p className="text-sm text-muted-foreground">No transactions match your filters.</p>
             )}
           </div>
+        ) : groups ? (
+          <div className="flex flex-col gap-5 py-3">
+            {groups.map((group) => (
+              <div key={group.periodStart} className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between px-1">
+                  <h3 className="text-[13px] font-medium">{group.label}</h3>
+                  <span className="flex items-center gap-2 text-[12px] tabular-nums text-muted-foreground">
+                    {group.income.size > 0 ? (
+                      <span className="text-[color:var(--chart-income)]">+{formatTotals(group.income)}</span>
+                    ) : null}
+                    {group.expense.size > 0 ? (
+                      <span className="text-[color:var(--chart-expense)]">-{formatTotals(group.expense)}</span>
+                    ) : null}
+                  </span>
+                </div>
+                <Table>
+                  <TableBody>{group.items.map((transaction) => renderRow(transaction))}</TableBody>
+                </Table>
+              </div>
+            ))}
+          </div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead className="pl-0 text-[13px]">Date</TableHead>
+                <TableHead className="w-8 pl-0" />
+                <TableHead className="text-[13px]">Date</TableHead>
                 <TableHead className="text-[13px]">Description</TableHead>
                 <TableHead className="text-[13px]">Category</TableHead>
                 <TableHead className="text-[13px]">Account</TableHead>
                 <TableHead className="pr-0 text-right text-[13px]">Amount</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
-              {filtered.map((transaction) => {
-                const props = transaction.properties;
-                return (
-                  <TableRow
-                    key={transaction.id}
-                    className="cursor-pointer border-border/70"
-                    onClick={() => {
-                      setSelected(transaction);
-                      setDetailOpen(true);
-                    }}
-                  >
-                    <TableCell className="py-2 pl-0 text-[13px] text-muted-foreground">{formatMoneyDate(props?.date)}</TableCell>
-                    <TableCell className="text-[13px] font-medium">{transaction.title}</TableCell>
-                    <TableCell className="text-[13px] text-muted-foreground">
-                      {props?.transactionType === "transfer"
-                        ? `${accountLabel(props.accountId)} → ${accountLabel(props.toAccountId)}`
-                        : categoryLabel(props?.categoryId)}
-                    </TableCell>
-                    <TableCell className="text-[13px] text-muted-foreground">
-                      {props?.transactionType === "transfer" ? "-" : accountLabel(props?.accountId)}
-                    </TableCell>
-                    <TableCell
-                      className={`pr-0 text-right text-[13px] font-medium ${props ? TRANSACTION_TYPE_COLORS[props.transactionType] : ""}`}
-                    >
-                      {signedAmount(transaction)}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
+            <TableBody>{filtered.map((transaction) => renderRow(transaction))}</TableBody>
           </Table>
         )}
       </div>

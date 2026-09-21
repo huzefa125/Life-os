@@ -1,4 +1,5 @@
 import { prisma } from "../../db";
+import type { Prisma } from "../../generated/prisma/client";
 import type {
   CreateTransactionBody,
   UpdateTransactionBody,
@@ -20,6 +21,7 @@ interface TransactionProperties {
   accountId: string;
   toAccountId?: string;
   categoryId?: string;
+  recurringId?: string;
 }
 
 export type CreateTransactionResult =
@@ -68,26 +70,39 @@ async function syncRelations(userId: string, transactionId: string, properties: 
   await prisma.relation.createMany({ data: relations });
 }
 
-export async function createTransaction(
+/**
+ * Shared by the public createTransaction (after Zod validation) and by
+ * recurring-transaction generation, which builds already-trusted properties
+ * from a template and has no HTTP body to validate.
+ */
+export async function createTransactionRecord(
   userId: string,
-  input: CreateTransactionBody
+  title: string,
+  properties: TransactionProperties
 ): Promise<CreateTransactionResult> {
-  const validation = await validateReferences(userId, input.properties);
+  const validation = await validateReferences(userId, properties);
   if (!validation.ok) return validation;
 
   const transaction = await prisma.object.create({
     data: {
       userId,
       type: TRANSACTION_TYPE,
-      title: input.title,
+      title,
       status: "active",
-      properties: input.properties,
+      properties: properties as unknown as Prisma.InputJsonValue,
     },
   });
 
-  await syncRelations(userId, transaction.id, input.properties);
+  await syncRelations(userId, transaction.id, properties);
   await logActivity(userId, transaction.id, "created", { title: transaction.title });
   return { ok: true, transaction };
+}
+
+export async function createTransaction(
+  userId: string,
+  input: CreateTransactionBody
+): Promise<CreateTransactionResult> {
+  return createTransactionRecord(userId, input.title, input.properties);
 }
 
 export async function getTransactionsByUser(userId: string, filters: TransactionListQuery) {

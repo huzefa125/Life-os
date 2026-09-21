@@ -12,6 +12,8 @@ export const RELATION_TYPES = [
   "in_account",
   "in_category",
   "transfer_to",
+  "for_category",
+  "funds_from",
 ] as const;
 
 export const relationIdParamSchema = z.object({

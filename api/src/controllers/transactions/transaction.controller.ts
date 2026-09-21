@@ -7,6 +7,7 @@ import {
   transactionListQuerySchema,
 } from "../../validation/transaction.validation";
 import * as transactionService from "../../services/transactions/transaction.service";
+import { processDueRecurring } from "../../services/recurring/recurring.service";
 
 function formatZodError(error: { issues: { message: string }[] }) {
   return error.issues.map((issue) => issue.message).join(", ");
@@ -37,6 +38,7 @@ export async function getTransactions(req: Request, res: Response) {
     return sendError(res, formatZodError(parsed.error), 400);
   }
 
+  await processDueRecurring(req.userId as string);
   const transactions = await transactionService.getTransactionsByUser(req.userId as string, parsed.data);
   return sendSuccess(res, transactions);
 }

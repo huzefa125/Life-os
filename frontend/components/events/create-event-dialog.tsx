@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { api, ApiError } from "@/lib/api-client";
 import { fromDatetimeLocal } from "@/lib/event-meta";
-import type { Event, EventMode } from "@/lib/types";
+import type { CalendarEvent, EventMode } from "@/lib/types";
 import { EventModeFields } from "./event-mode-fields";
 
 function defaultStart() {
@@ -43,7 +43,7 @@ export function CreateEventDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated: (event: Event) => void;
+  onCreated: (event: CalendarEvent) => void;
 }) {
   const [title, setTitle] = useState("");
   const [startAt, setStartAt] = useState(defaultStart);

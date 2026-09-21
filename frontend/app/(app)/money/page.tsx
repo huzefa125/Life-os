@@ -1,5 +1,5 @@
-import { AccountsView } from "@/components/money/accounts-view";
+import { OverviewView } from "@/components/money/overview-view";
 
 export default function MoneyPage() {
-  return <AccountsView />;
+  return <OverviewView />;
 }

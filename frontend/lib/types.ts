@@ -80,11 +80,15 @@ export interface Note {
   updatedAt: string;
 }
 
+export type EventMode = "online" | "in_person";
+
 export interface EventProperties {
   description?: string;
   startAt: string;
   endAt: string;
+  mode?: EventMode;
   location?: string;
+  link?: string;
 }
 
 export interface CalendarEvent {
@@ -174,6 +178,7 @@ export interface TransactionProperties {
   accountId: string;
   toAccountId?: string;
   categoryId?: string;
+  recurringId?: string;
 }
 
 export interface Transaction {
@@ -195,6 +200,104 @@ export interface TransactionFilters {
   dateFrom?: string;
   dateTo?: string;
   q?: string;
+}
+
+export type BudgetPeriod = "weekly" | "monthly";
+
+export interface BudgetProperties {
+  categoryId: string;
+  amount: number;
+  currency: string;
+  period: BudgetPeriod;
+}
+
+export interface Budget {
+  id: string;
+  type: "budget";
+  title: string;
+  properties: BudgetProperties | null;
+  spent: number;
+  remaining: number;
+  tags?: string[];
+  status?: "active" | "archived" | "trash";
+  isFavorite?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type RecurringFrequency = "weekly" | "monthly" | "yearly";
+
+export interface RecurringTransactionProperties {
+  transactionType: TransactionType;
+  amount: number;
+  currency: string;
+  description?: string;
+  accountId: string;
+  toAccountId?: string;
+  categoryId?: string;
+  frequency: RecurringFrequency;
+  startDate: string;
+  nextRunDate: string;
+  endDate?: string;
+  active?: boolean;
+}
+
+export interface RecurringTransaction {
+  id: string;
+  type: "recurring_transaction";
+  title: string;
+  properties: RecurringTransactionProperties | null;
+  tags?: string[];
+  status?: "active" | "archived" | "trash";
+  isFavorite?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GoalProperties {
+  targetAmount: number;
+  currency: string;
+  targetDate?: string;
+  currentAmount?: number;
+  linkedAccountId?: string;
+}
+
+export interface Goal {
+  id: string;
+  type: "goal";
+  title: string;
+  properties: GoalProperties | null;
+  currentValue: number;
+  progress: number;
+  tags?: string[];
+  status?: "active" | "archived" | "trash";
+  isFavorite?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type MoneyGranularity = "day" | "week" | "month" | "year";
+
+export interface MoneySummaryPeriod {
+  periodStart: string;
+  periodLabel: string;
+  income: number;
+  expense: number;
+  net: number;
+  netWorth: number;
+}
+
+export interface MoneySummaryCategory {
+  categoryId: string;
+  title: string;
+  total: number;
+}
+
+export interface MoneySummary {
+  granularity: MoneyGranularity;
+  currency: string;
+  series: MoneySummaryPeriod[];
+  categoryBreakdown: MoneySummaryCategory[];
 }
 
 export interface GenericObject {
@@ -285,7 +388,9 @@ export type RelationType =
   | "assigned_to"
   | "in_account"
   | "in_category"
-  | "transfer_to";
+  | "transfer_to"
+  | "for_category"
+  | "funds_from";
 
 export interface Relation {
   id: string;

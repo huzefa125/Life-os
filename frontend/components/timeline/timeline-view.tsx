@@ -9,9 +9,12 @@ import {
   History,
   Landmark,
   Paperclip,
+  PiggyBank,
   Receipt,
+  Repeat,
   Search,
   Tag,
+  Target,
   User,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -32,6 +35,9 @@ const TYPE_META = {
   account: { label: "Account", icon: Landmark, color: "bg-lime-100 text-lime-700" },
   category: { label: "Category", icon: Tag, color: "bg-lime-100 text-lime-700" },
   transaction: { label: "Transaction", icon: Receipt, color: "bg-lime-100 text-lime-700" },
+  budget: { label: "Budget", icon: PiggyBank, color: "bg-lime-100 text-lime-700" },
+  recurring_transaction: { label: "Recurring", icon: Repeat, color: "bg-lime-100 text-lime-700" },
+  goal: { label: "Goal", icon: Target, color: "bg-lime-100 text-lime-700" },
 };
 
 function formatDateTime(iso: string) {

@@ -18,7 +18,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { api, ApiError } from "@/lib/api-client";
 import { fromDatetimeLocal, toDatetimeLocal } from "@/lib/event-meta";
-import type { Event, EventMode } from "@/lib/types";
+import type { CalendarEvent, EventMode } from "@/lib/types";
 import { EventModeFields } from "./event-mode-fields";
 
 export function EventDetailSheet({
@@ -28,10 +28,10 @@ export function EventDetailSheet({
   onUpdated,
   onDeleted,
 }: {
-  event: Event | null;
+  event: CalendarEvent | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onUpdated: (event: Event) => void;
+  onUpdated: (event: CalendarEvent) => void;
   onDeleted: (id: string) => void;
 }) {
   return (
@@ -57,9 +57,9 @@ function EventDetailForm({
   onUpdated,
   onDeleted,
 }: {
-  event: Event;
+  event: CalendarEvent;
   onOpenChange: (open: boolean) => void;
-  onUpdated: (event: Event) => void;
+  onUpdated: (event: CalendarEvent) => void;
   onDeleted: (id: string) => void;
 }) {
   const [title, setTitle] = useState(event.title);

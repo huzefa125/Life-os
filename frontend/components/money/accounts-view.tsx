@@ -27,7 +27,8 @@ import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { api, ApiError } from "@/lib/api-client";
-import { ACCOUNT_TYPE_LABELS, COMMON_CURRENCIES, formatMoney } from "@/lib/money-meta";
+import { ACCOUNT_TYPE_BADGE, ACCOUNT_TYPE_ICON, ACCOUNT_TYPE_LABELS, COMMON_CURRENCIES, formatMoney } from "@/lib/money-meta";
+import { cn } from "cn";
 import type { Account, AccountProperties, AccountType } from "@/lib/types";
 import { MoneyTabs } from "./money-tabs";
 
@@ -58,7 +59,7 @@ export function AccountsView() {
         if (match) {
           setSelected(match);
           setDetailOpen(true);
-          router.replace("/money");
+          router.replace("/money/accounts");
         }
       })
       .catch((error) => toast.error(error instanceof ApiError ? error.message : "Couldn't load accounts"))
@@ -124,30 +125,40 @@ export function AccountsView() {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {accounts.map((account) => (
-              <button
-                key={account.id}
-                type="button"
-                onClick={() => {
-                  setSelected(account);
-                  setDetailOpen(true);
-                }}
-                className="flex flex-col gap-2 rounded-lg border p-4 text-left transition-colors hover:bg-accent/50"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[13px] font-medium">{account.title}</span>
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-                    {account.properties ? ACCOUNT_TYPE_LABELS[account.properties.accountType] : "-"}
+            {accounts.map((account) => {
+              const accountType = account.properties?.accountType;
+              const Icon = accountType ? ACCOUNT_TYPE_ICON[accountType] : Wallet;
+              const negative = account.balance < 0;
+              return (
+                <button
+                  key={account.id}
+                  type="button"
+                  onClick={() => {
+                    setSelected(account);
+                    setDetailOpen(true);
+                  }}
+                  className="group flex flex-col gap-3 rounded-lg border p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 text-[13px] font-medium">
+                      <span className="flex size-6 items-center justify-center rounded-md bg-lime-100 text-lime-700">
+                        <Icon className="size-3.5" />
+                      </span>
+                      {account.title}
+                    </span>
+                    <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium", accountType ? ACCOUNT_TYPE_BADGE[accountType] : "bg-muted text-muted-foreground")}>
+                      {accountType ? ACCOUNT_TYPE_LABELS[accountType] : "-"}
+                    </span>
+                  </div>
+                  <span className={cn("text-xl font-semibold tabular-nums", negative && "text-destructive")}>
+                    {formatMoney(account.balance, account.properties?.currency ?? "USD")}
                   </span>
-                </div>
-                <span className="text-lg font-semibold">
-                  {formatMoney(account.balance, account.properties?.currency ?? "USD")}
-                </span>
-                {account.properties?.institution ? (
-                  <span className="text-[12px] text-muted-foreground">{account.properties.institution}</span>
-                ) : null}
-              </button>
-            ))}
+                  {account.properties?.institution ? (
+                    <span className="text-[12px] text-muted-foreground">{account.properties.institution}</span>
+                  ) : null}
+                </button>
+              );
+            })}
           </div>
         )}
       </div>

@@ -83,6 +83,18 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.906 0.004 264);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* Money charts — validated categorical/diverging palette (dataviz skill) */
+  --chart-series-1: #2a78d6;
+  --chart-series-2: #eb6834;
+  --chart-series-3: #1baf7a;
+  --chart-series-4: #eda100;
+  --chart-series-5: #e87ba4;
+  --chart-series-6: #008300;
+  --chart-series-7: #4a3aa7;
+  --chart-muted: #c3c2b7;
+  --chart-income: #2a78d6;
+  --chart-expense: #e34948;
 }
 
 .dark {
@@ -117,6 +129,18 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  /* Money charts — validated categorical/diverging palette (dataviz skill), dark steps */
+  --chart-series-1: #3987e5;
+  --chart-series-2: #d95926;
+  --chart-series-3: #199e70;
+  --chart-series-4: #c98500;
+  --chart-series-5: #d55181;
+  --chart-series-6: #008300;
+  --chart-series-7: #9085e9;
+  --chart-muted: #383835;
+  --chart-income: #3987e5;
+  --chart-expense: #e66767;
 }
 
 @layer base {

@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { api, ApiError } from "@/lib/api-client";
 import { formatFileSize } from "@/lib/file-meta";
-import type { FileRecord } from "@/lib/types";
+import type { StoredFile } from "@/lib/types";
 import { FileTypeIcon } from "./file-type-icon";
 
 export function FileDetailSheet({
@@ -25,7 +25,7 @@ export function FileDetailSheet({
   onOpenChange,
   onDeleted,
 }: {
-  file: FileRecord | null;
+  file: StoredFile | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onDeleted: (id: string) => void;
@@ -51,7 +51,7 @@ function FileDetailContent({
   onOpenChange,
   onDeleted,
 }: {
-  file: FileRecord;
+  file: StoredFile;
   onOpenChange: (open: boolean) => void;
   onDeleted: (id: string) => void;
 }) {

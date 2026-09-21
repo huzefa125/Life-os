@@ -38,6 +38,14 @@ import {
   updateTransactionSchema,
   transactionIdParamSchema,
 } from "../validation/transaction.validation";
+import { createBudgetSchema, updateBudgetSchema, budgetIdParamSchema } from "../validation/budget.validation";
+import {
+  createRecurringSchema,
+  updateRecurringSchema,
+  recurringIdParamSchema,
+} from "../validation/recurring.validation";
+import { createGoalSchema, updateGoalSchema, goalIdParamSchema } from "../validation/goal.validation";
+import { moneySummaryQuerySchema } from "../validation/money.validation";
 
 const registry = new OpenAPIRegistry();
 
@@ -210,10 +218,96 @@ const transactionSchema = z
         accountId: z.uuid(),
         toAccountId: z.uuid().optional(),
         categoryId: z.uuid().optional(),
+        recurringId: z.uuid().optional(),
       })
       .nullable(),
   })
   .openapi("Transaction");
+
+const budgetSchema = z
+  .object({
+    id: z.uuid(),
+    type: z.literal("budget"),
+    title: z.string().openapi({ example: "Food budget" }),
+    properties: z
+      .object({
+        categoryId: z.uuid(),
+        amount: z.number().openapi({ example: 5000 }),
+        currency: z.string().openapi({ example: "INR" }),
+        period: z.string().openapi({ example: "monthly" }),
+      })
+      .nullable(),
+    spent: z.number().openapi({ example: 1200 }),
+    remaining: z.number().openapi({ example: 3800 }),
+  })
+  .openapi("Budget");
+
+const recurringTransactionSchema = z
+  .object({
+    id: z.uuid(),
+    type: z.literal("recurring_transaction"),
+    title: z.string().openapi({ example: "Rent" }),
+    properties: z
+      .object({
+        transactionType: z.string().openapi({ example: "expense" }),
+        amount: z.number().openapi({ example: 20000 }),
+        currency: z.string().openapi({ example: "INR" }),
+        description: z.string().optional(),
+        accountId: z.uuid(),
+        toAccountId: z.uuid().optional(),
+        categoryId: z.uuid().optional(),
+        frequency: z.string().openapi({ example: "monthly" }),
+        startDate: z.string().openapi({ example: "2026-09-01" }),
+        nextRunDate: z.string().openapi({ example: "2026-10-01" }),
+        endDate: z.string().optional(),
+        active: z.boolean().optional(),
+      })
+      .nullable(),
+  })
+  .openapi("RecurringTransaction");
+
+const goalSchema = z
+  .object({
+    id: z.uuid(),
+    type: z.literal("goal"),
+    title: z.string().openapi({ example: "Goa trip" }),
+    properties: z
+      .object({
+        targetAmount: z.number().openapi({ example: 50000 }),
+        currency: z.string().openapi({ example: "INR" }),
+        targetDate: z.string().optional(),
+        currentAmount: z.number().optional(),
+        linkedAccountId: z.uuid().optional(),
+      })
+      .nullable(),
+    currentValue: z.number().openapi({ example: 12000 }),
+    progress: z.number().openapi({ example: 0.24 }),
+  })
+  .openapi("Goal");
+
+const moneySummarySchema = z
+  .object({
+    granularity: z.enum(["day", "week", "month", "year"]),
+    currency: z.string().openapi({ example: "INR" }),
+    series: z.array(
+      z.object({
+        periodStart: z.string().openapi({ example: "2026-08-01" }),
+        periodLabel: z.string().openapi({ example: "Aug 2026" }),
+        income: z.number(),
+        expense: z.number(),
+        net: z.number(),
+        netWorth: z.number(),
+      })
+    ),
+    categoryBreakdown: z.array(
+      z.object({
+        categoryId: z.string(),
+        title: z.string(),
+        total: z.number(),
+      })
+    ),
+  })
+  .openapi("MoneySummary");
 
 const relationSchema = z
   .object({
@@ -984,6 +1078,247 @@ registry.registerPath({
     400: { description: "Validation error", ...jsonBody(errorResponse) },
     401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
     404: { description: "Transaction not found", ...jsonBody(errorResponse) },
+  },
+});
+
+// -- Budgets --
+
+registry.registerPath({
+  method: "post",
+  path: "/api/budgets",
+  tags: ["Budgets"],
+  summary: "Create a Budget",
+  security: authSecurity,
+  request: { body: jsonBody(createBudgetSchema) },
+  responses: {
+    201: { description: "Budget created", ...jsonBody(successResponse(budgetSchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+    404: { description: "Category not found", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/budgets",
+  tags: ["Budgets"],
+  summary: "List all Budgets belonging to the authenticated user, with computed spent/remaining",
+  security: authSecurity,
+  responses: {
+    200: { description: "List of budgets", ...jsonBody(successResponse(z.array(budgetSchema))) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/budgets/{id}",
+  tags: ["Budgets"],
+  summary: "Get a single Budget",
+  security: authSecurity,
+  request: { params: budgetIdParamSchema },
+  responses: {
+    200: { description: "Budget found", ...jsonBody(successResponse(budgetSchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+    404: { description: "Budget not found", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "patch",
+  path: "/api/budgets/{id}",
+  tags: ["Budgets"],
+  summary: "Update a Budget",
+  security: authSecurity,
+  request: { params: budgetIdParamSchema, body: jsonBody(updateBudgetSchema) },
+  responses: {
+    200: { description: "Budget updated", ...jsonBody(successResponse(budgetSchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+    404: { description: "Budget or category not found", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "delete",
+  path: "/api/budgets/{id}",
+  tags: ["Budgets"],
+  summary: "Delete a Budget",
+  security: authSecurity,
+  request: { params: budgetIdParamSchema },
+  responses: {
+    200: { description: "Budget deleted", ...jsonBody(successResponse(budgetSchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+    404: { description: "Budget not found", ...jsonBody(errorResponse) },
+  },
+});
+
+// -- Recurring Transactions --
+
+registry.registerPath({
+  method: "post",
+  path: "/api/recurring-transactions",
+  tags: ["Recurring Transactions"],
+  summary: "Create a Recurring Transaction template",
+  security: authSecurity,
+  request: { body: jsonBody(createRecurringSchema) },
+  responses: {
+    201: { description: "Recurring transaction created", ...jsonBody(successResponse(recurringTransactionSchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+    404: { description: "Account or category not found", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/recurring-transactions",
+  tags: ["Recurring Transactions"],
+  summary: "List Recurring Transactions (generates any now-due occurrences first)",
+  security: authSecurity,
+  responses: {
+    200: {
+      description: "List of recurring transactions",
+      ...jsonBody(successResponse(z.array(recurringTransactionSchema))),
+    },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/recurring-transactions/{id}",
+  tags: ["Recurring Transactions"],
+  summary: "Get a single Recurring Transaction",
+  security: authSecurity,
+  request: { params: recurringIdParamSchema },
+  responses: {
+    200: { description: "Recurring transaction found", ...jsonBody(successResponse(recurringTransactionSchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+    404: { description: "Recurring transaction not found", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "patch",
+  path: "/api/recurring-transactions/{id}",
+  tags: ["Recurring Transactions"],
+  summary: "Update a Recurring Transaction",
+  security: authSecurity,
+  request: { params: recurringIdParamSchema, body: jsonBody(updateRecurringSchema) },
+  responses: {
+    200: { description: "Recurring transaction updated", ...jsonBody(successResponse(recurringTransactionSchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+    404: { description: "Recurring transaction, account, or category not found", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "delete",
+  path: "/api/recurring-transactions/{id}",
+  tags: ["Recurring Transactions"],
+  summary: "Delete a Recurring Transaction",
+  security: authSecurity,
+  request: { params: recurringIdParamSchema },
+  responses: {
+    200: { description: "Recurring transaction deleted", ...jsonBody(successResponse(recurringTransactionSchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+    404: { description: "Recurring transaction not found", ...jsonBody(errorResponse) },
+  },
+});
+
+// -- Goals --
+
+registry.registerPath({
+  method: "post",
+  path: "/api/goals",
+  tags: ["Goals"],
+  summary: "Create a Financial Goal",
+  security: authSecurity,
+  request: { body: jsonBody(createGoalSchema) },
+  responses: {
+    201: { description: "Goal created", ...jsonBody(successResponse(goalSchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+    404: { description: "Linked account not found", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/goals",
+  tags: ["Goals"],
+  summary: "List all Goals belonging to the authenticated user, with computed progress",
+  security: authSecurity,
+  responses: {
+    200: { description: "List of goals", ...jsonBody(successResponse(z.array(goalSchema))) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/goals/{id}",
+  tags: ["Goals"],
+  summary: "Get a single Goal",
+  security: authSecurity,
+  request: { params: goalIdParamSchema },
+  responses: {
+    200: { description: "Goal found", ...jsonBody(successResponse(goalSchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+    404: { description: "Goal not found", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "patch",
+  path: "/api/goals/{id}",
+  tags: ["Goals"],
+  summary: "Update a Goal",
+  security: authSecurity,
+  request: { params: goalIdParamSchema, body: jsonBody(updateGoalSchema) },
+  responses: {
+    200: { description: "Goal updated", ...jsonBody(successResponse(goalSchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+    404: { description: "Goal or linked account not found", ...jsonBody(errorResponse) },
+  },
+});
+
+registry.registerPath({
+  method: "delete",
+  path: "/api/goals/{id}",
+  tags: ["Goals"],
+  summary: "Delete a Goal",
+  security: authSecurity,
+  request: { params: goalIdParamSchema },
+  responses: {
+    200: { description: "Goal deleted", ...jsonBody(successResponse(goalSchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
+    404: { description: "Goal not found", ...jsonBody(errorResponse) },
+  },
+});
+
+// -- Money --
+
+registry.registerPath({
+  method: "get",
+  path: "/api/money/summary",
+  tags: ["Money"],
+  summary: "Income/expense/net-worth trend and category breakdown for charts",
+  security: authSecurity,
+  request: { query: moneySummaryQuerySchema },
+  responses: {
+    200: { description: "Money summary", ...jsonBody(successResponse(moneySummarySchema)) },
+    400: { description: "Validation error", ...jsonBody(errorResponse) },
+    401: { description: "Missing or invalid token", ...jsonBody(errorResponse) },
   },
 });
 

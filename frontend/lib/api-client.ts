@@ -3,6 +3,8 @@ import type {
   Account,
   AccountProperties,
   ApiUser,
+  Budget,
+  BudgetProperties,
   CalendarEvent,
   Category,
   CategoryProperties,
@@ -11,7 +13,11 @@ import type {
   FavoriteItem,
   FileProperties,
   GenericObject,
+  Goal,
+  GoalProperties,
   JsonValue,
+  MoneyGranularity,
+  MoneySummary,
   Note,
   NoteProperties,
   ObjectWithConnections,
@@ -20,6 +26,8 @@ import type {
   Person,
   Project,
   ProjectProperties,
+  RecurringTransaction,
+  RecurringTransactionProperties,
   Relation,
   RelationType,
   StoredFile,
@@ -232,6 +240,55 @@ export const api = {
         body: JSON.stringify(input),
       }),
     remove: (id: string) => request<Transaction>(`/api/transactions/${id}`, { method: "DELETE" }),
+  },
+  budgets: {
+    list: () => request<Budget[]>("/api/budgets"),
+    get: (id: string) => request<Budget>(`/api/budgets/${id}`),
+    create: (input: { title: string; properties: BudgetProperties }) =>
+      request<Budget>("/api/budgets", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    update: (id: string, input: { title?: string; properties?: BudgetProperties }) =>
+      request<Budget>(`/api/budgets/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(input),
+      }),
+    remove: (id: string) => request<Budget>(`/api/budgets/${id}`, { method: "DELETE" }),
+  },
+  recurringTransactions: {
+    list: () => request<RecurringTransaction[]>("/api/recurring-transactions"),
+    get: (id: string) => request<RecurringTransaction>(`/api/recurring-transactions/${id}`),
+    create: (input: { title: string; properties: Omit<RecurringTransactionProperties, "nextRunDate"> }) =>
+      request<RecurringTransaction>("/api/recurring-transactions", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    update: (id: string, input: { title?: string; properties?: Omit<RecurringTransactionProperties, "nextRunDate"> }) =>
+      request<RecurringTransaction>(`/api/recurring-transactions/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(input),
+      }),
+    remove: (id: string) => request<RecurringTransaction>(`/api/recurring-transactions/${id}`, { method: "DELETE" }),
+  },
+  goals: {
+    list: () => request<Goal[]>("/api/goals"),
+    get: (id: string) => request<Goal>(`/api/goals/${id}`),
+    create: (input: { title: string; properties: GoalProperties }) =>
+      request<Goal>("/api/goals", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    update: (id: string, input: { title?: string; properties?: GoalProperties }) =>
+      request<Goal>(`/api/goals/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(input),
+      }),
+    remove: (id: string) => request<Goal>(`/api/goals/${id}`, { method: "DELETE" }),
+  },
+  money: {
+    summary: (granularity: MoneyGranularity) =>
+      request<MoneySummary>(`/api/money/summary?granularity=${granularity}`),
   },
   timeline: {
     list: () => request<GenericObject[]>("/api/timeline"),

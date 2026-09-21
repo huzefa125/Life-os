@@ -32,6 +32,10 @@ import { cn } from "@/lib/utils";
 
 const NO_STATUS = "none";
 
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString(undefined, { dateStyle: "medium" });
+}
+
 export function ProjectDetailSheet({
   project,
   open,

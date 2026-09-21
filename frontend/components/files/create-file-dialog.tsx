@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { api, ApiError } from "@/lib/api-client";
-import type { FileRecord } from "@/lib/types";
+import type { StoredFile } from "@/lib/types";
 
 const SIZE_UNITS = { B: 1, KB: 1024, MB: 1024 ** 2, GB: 1024 ** 3 } as const;
 type SizeUnit = keyof typeof SIZE_UNITS;
@@ -45,7 +45,7 @@ export function CreateFileDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated: (file: FileRecord) => void;
+  onCreated: (file: StoredFile) => void;
 }) {
   const [url, setUrl] = useState("");
   const [fileName, setFileName] = useState("");
