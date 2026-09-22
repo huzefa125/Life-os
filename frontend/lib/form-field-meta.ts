@@ -92,6 +92,29 @@ export const RELATION_TYPE_OPTIONS = [
   "created",
 ] as const;
 
+/**
+ * `<input type="datetime-local">` reads/writes a naive local-time string with
+ * no timezone (e.g. "2026-09-22T18:35"). Storing that raw would make a date
+ * mean different instants depending on which machine's clock reads it later
+ * (e.g. the server). These convert to/from an absolute ISO-with-offset string
+ * (`Date#toISOString()`) at the UI boundary, so everything stored/compared
+ * server-side is an unambiguous instant.
+ */
+export function toDatetimeLocalValue(iso?: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+export function fromDatetimeLocalValue(local: string): string | undefined {
+  if (!local) return undefined;
+  const d = new Date(local);
+  if (Number.isNaN(d.getTime())) return undefined;
+  return d.toISOString();
+}
+
 export function newFieldId() {
   return `field-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }

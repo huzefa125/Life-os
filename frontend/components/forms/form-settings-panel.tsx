@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { fromDatetimeLocalValue, toDatetimeLocalValue } from "@/lib/form-field-meta";
 import type { FormSettings } from "@/lib/types";
 
 function Toggle({
@@ -107,8 +108,8 @@ export function FormSettingsPanel({
           <Label className="text-[12px] text-muted-foreground">Starts</Label>
           <Input
             type="datetime-local"
-            value={settings.startDate ?? ""}
-            onChange={(e) => update({ startDate: e.target.value || undefined })}
+            value={toDatetimeLocalValue(settings.startDate)}
+            onChange={(e) => update({ startDate: fromDatetimeLocalValue(e.target.value) })}
             className="h-8 text-[13px]"
           />
         </div>
@@ -116,8 +117,8 @@ export function FormSettingsPanel({
           <Label className="text-[12px] text-muted-foreground">Ends</Label>
           <Input
             type="datetime-local"
-            value={settings.endDate ?? ""}
-            onChange={(e) => update({ endDate: e.target.value || undefined })}
+            value={toDatetimeLocalValue(settings.endDate)}
+            onChange={(e) => update({ endDate: fromDatetimeLocalValue(e.target.value) })}
             className="h-8 text-[13px]"
           />
         </div>

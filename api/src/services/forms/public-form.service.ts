@@ -61,11 +61,15 @@ function computeAvailability(properties: FormProperties, responseCount: number):
   if (settings.status === "closed") return { status: "closed", message: "This form is closed." };
   if (!settings.acceptResponses) return { status: "paused", message: "This form isn't accepting responses right now." };
 
-  const now = new Date().toISOString();
-  if (settings.startDate && now < settings.startDate) {
+  // Compared as real Date objects, not strings — startDate/endDate are stored
+  // as full ISO-with-offset values from the builder, but comparing datetime
+  // strings lexicographically breaks the moment their formats/lengths differ
+  // (e.g. a UTC "...Z" string vs a shorter naive one).
+  const now = new Date();
+  if (settings.startDate && now < new Date(settings.startDate)) {
     return { status: "not_yet_open", message: "This form isn't open yet." };
   }
-  if (settings.endDate && now > settings.endDate) {
+  if (settings.endDate && now > new Date(settings.endDate)) {
     return { status: "closed", message: "This form has closed." };
   }
   if (settings.responseLimit && responseCount >= settings.responseLimit) {
