@@ -16,10 +16,15 @@ if (!JWT_SECRET) {
 
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
 
+const UPLOAD_DIR = process.env.UPLOAD_DIR || "uploads";
+const MAX_UPLOAD_MB = process.env.MAX_UPLOAD_MB ? Number(process.env.MAX_UPLOAD_MB) : 20;
+
 export const env = {
     PORT: PORT,
     DATABASE_URL: DATABASE_URL,
     JWT_SECRET: JWT_SECRET,
     JWT_EXPIRES_IN: JWT_EXPIRES_IN,
+    UPLOAD_DIR: UPLOAD_DIR,
+    MAX_UPLOAD_MB: MAX_UPLOAD_MB,
 };
 

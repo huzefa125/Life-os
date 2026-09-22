@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Repeat, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { AnimatedNumber } from "@/components/ui/animated-number";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -157,7 +158,7 @@ export function RecurringView() {
           <Repeat className="size-3" />
         </div>
         <h1 className="text-[15px] font-semibold">Money</h1>
-        {!loading ? <span className="text-[13px] text-muted-foreground">{recurring.length}</span> : null}
+        {!loading ? <AnimatedNumber value={recurring.length} className="text-[13px] text-muted-foreground" /> : null}
         <Button size="sm" className="ml-auto" disabled={accounts.length === 0} onClick={() => setCreateOpen(true)}>
           <Plus className="size-3.5" />
           New recurring

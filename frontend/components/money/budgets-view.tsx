@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { PiggyBank, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { AnimatedNumber } from "@/components/ui/animated-number";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -106,7 +107,12 @@ export function BudgetsView() {
           <PiggyBank className="size-3" />
         </div>
         <h1 className="text-[15px] font-semibold">Money</h1>
-        {!loading ? <span className="text-[13px] text-muted-foreground">{filteredBudgets.length} budgets</span> : null}
+        {!loading ? (
+          <span className="flex items-center gap-1 text-[13px] text-muted-foreground">
+            <AnimatedNumber value={filteredBudgets.length} />
+            budgets
+          </span>
+        ) : null}
 
         <div className="ml-auto flex items-center gap-3">
           <div className="flex gap-1">

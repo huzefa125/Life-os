@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRightLeft, List, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { AnimatedNumber } from "@/components/ui/animated-number";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -242,7 +243,7 @@ export function TransactionsView() {
           <ArrowRightLeft className="size-3" />
         </div>
         <h1 className="text-[15px] font-semibold">Money</h1>
-        {!loading ? <span className="text-[13px] text-muted-foreground">{filtered.length}</span> : null}
+        {!loading ? <AnimatedNumber value={filtered.length} className="text-[13px] text-muted-foreground" /> : null}
 
         <div className="ml-auto flex items-center gap-3">
           <div className="flex gap-1">

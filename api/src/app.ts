@@ -1,6 +1,8 @@
+import path from "path";
 import express from "express";
 import cors from "cors";
 import swaggerUi from "swagger-ui-express";
+import { env } from "./config/env";
 import healthRouter from "./routes/health.routes";
 import dbHealthRouter from "./routes/db-health.routes";
 import authRouter from "./routes/auth.routes";
@@ -26,6 +28,8 @@ import favoritesRouter from "./routes/favorites.routes";
 import archiveRouter from "./routes/archive.routes";
 import trashRouter from "./routes/trash.routes";
 import tagsRouter from "./routes/tags.routes";
+import formsRouter from "./routes/forms.routes";
+import publicFormsRouter from "./routes/public-forms.routes";
 import { errorHandler } from "./middleware/errorHandler";
 import { openApiDocument } from "./docs/openapi";
 
@@ -59,6 +63,21 @@ app.use("/api/favorites", favoritesRouter);
 app.use("/api/archive", archiveRouter);
 app.use("/api/trash", trashRouter);
 app.use("/api/tags", tagsRouter);
+app.use("/api/forms", formsRouter);
+app.use("/api/public/forms", publicFormsRouter);
+
+// Uploaded form attachments — served with headers that prevent stored-XSS
+// via user-uploaded content (e.g. a crafted PDF/image opened as HTML).
+app.use(
+  "/uploads",
+  (req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Content-Security-Policy", "default-src 'none'");
+    res.setHeader("Content-Disposition", "inline");
+    next();
+  },
+  express.static(path.resolve(process.cwd(), env.UPLOAD_DIR))
+);
 
 app.get("/api-docs.json", (req, res) => res.json(openApiDocument));
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openApiDocument));

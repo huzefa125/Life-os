@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Tag, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { AnimatedNumber } from "@/components/ui/animated-number";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -85,7 +86,12 @@ export function CategoriesView() {
           <Tag className="size-3" />
         </div>
         <h1 className="text-[15px] font-semibold">Money</h1>
-        {!loading ? <span className="text-[13px] text-muted-foreground">{categories.length} categories</span> : null}
+        {!loading ? (
+          <span className="flex items-center gap-1 text-[13px] text-muted-foreground">
+            <AnimatedNumber value={categories.length} />
+            categories
+          </span>
+        ) : null}
         <Button size="sm" className="ml-auto" onClick={() => setCreateOpen(true)}>
           <Plus className="size-3.5" />
           New category

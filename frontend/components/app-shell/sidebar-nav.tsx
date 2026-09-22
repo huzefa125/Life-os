@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 import { Star } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -65,12 +66,19 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
               href={item.href}
               onClick={onNavigate}
               className={cn(
-                "flex items-center gap-2 rounded-md px-2 py-[5px] text-[13px] font-medium transition-colors",
+                "relative flex items-center gap-2 rounded-md px-2 py-[5px] text-[13px] font-medium transition-colors",
                 isActive
-                  ? "bg-sidebar-accent text-foreground"
+                  ? "text-foreground"
                   : "text-foreground/70 hover:bg-sidebar-accent/60 hover:text-foreground"
               )}
             >
+              {isActive ? (
+                <motion.div
+                  layoutId="sidebar-primary-active-pill"
+                  className="absolute inset-0 -z-10 rounded-md bg-sidebar-accent"
+                  transition={{ type: "spring", stiffness: 500, damping: 40 }}
+                />
+              ) : null}
               <Icon className={cn("size-[15px] shrink-0", item.color)} />
               <span>{item.label}</span>
             </Link>
@@ -95,12 +103,19 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                   href={href}
                   onClick={onNavigate}
                   className={cn(
-                    "flex items-center gap-2 truncate rounded-md px-2 py-1 text-xs transition-colors",
+                    "relative flex items-center gap-2 truncate rounded-md px-2 py-1 text-xs transition-colors",
                     isActive
-                      ? "bg-sidebar-accent text-foreground font-medium"
+                      ? "text-foreground font-medium"
                       : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground"
                   )}
                 >
+                  {isActive ? (
+                    <motion.div
+                      layoutId="sidebar-favorite-active-pill"
+                      className="absolute inset-0 -z-10 rounded-md bg-sidebar-accent"
+                      transition={{ type: "spring", stiffness: 500, damping: 40 }}
+                    />
+                  ) : null}
                   <span className="truncate flex-1">{fav.title}</span>
                   <span className="shrink-0 text-[10px] text-muted-foreground/60 uppercase">
                     {fav.type}
@@ -125,12 +140,19 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                 href={item.href}
                 onClick={onNavigate}
                 className={cn(
-                  "flex items-center gap-2 rounded-md px-2 py-[5px] text-xs font-medium transition-colors",
+                  "relative flex items-center gap-2 rounded-md px-2 py-[5px] text-xs font-medium transition-colors",
                   isActive
-                    ? "bg-sidebar-accent text-foreground"
+                    ? "text-foreground"
                     : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground"
                 )}
               >
+                {isActive ? (
+                  <motion.div
+                    layoutId="sidebar-secondary-active-pill"
+                    className="absolute inset-0 -z-10 rounded-md bg-sidebar-accent"
+                    transition={{ type: "spring", stiffness: 500, damping: 40 }}
+                  />
+                ) : null}
                 <Icon className={cn("size-3.5 shrink-0", item.color)} />
                 <span>{item.label}</span>
               </Link>

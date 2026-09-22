@@ -29,6 +29,11 @@ import {
 import { api, ApiError } from "@/lib/api-client";
 import { NO_PROJECT, ProjectSelect } from "@/components/projects/project-select";
 import { findParentProject } from "@/lib/relations";
+import { AnimatedNumber } from "@/components/ui/animated-number";
+import { CopyButton } from "@/components/ui/copy-button";
+import { FolderPreview, type FolderPreviewFile } from "@/components/ui/folder-preview";
+import { cn } from "@/lib/utils";
+import { FileTypeIcon } from "./file-type-icon";
 import type { FileProperties, GenericObject, StoredFile } from "@/lib/types";
 
 function formatBytes(bytes?: number) {
@@ -47,12 +52,61 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { dateStyle: "medium" });
 }
 
+type FileCategory = "image" | "video" | "audio" | "document" | "code" | "archive" | "other";
+
+const CATEGORY_ORDER: FileCategory[] = ["image", "document", "code", "video", "audio", "archive", "other"];
+
+const CATEGORY_LABELS: Record<FileCategory, string> = {
+  image: "Images",
+  video: "Videos",
+  audio: "Audio",
+  document: "Documents",
+  code: "Code",
+  archive: "Archives",
+  other: "Other",
+};
+
+/** The nandi FolderPreview variant only distinguishes txt/gif/mp3/default icon colors. */
+const CATEGORY_PREVIEW_TYPE: Record<FileCategory, FolderPreviewFile["type"]> = {
+  image: "gif",
+  video: "gif",
+  audio: "mp3",
+  document: "txt",
+  code: "txt",
+  archive: "default",
+  other: "default",
+};
+
+const CODE_EXTENSIONS = new Set([
+  "js", "mjs", "cjs", "jsx", "ts", "tsx", "py", "rb", "php", "go", "rs", "java", "kt", "kts",
+  "swift", "cs", "cpp", "cc", "cxx", "css", "html", "htm", "json", "yaml", "yml", "md", "markdown", "sh", "bash",
+]);
+
+function extensionOf(fileName?: string): string | null {
+  if (!fileName) return null;
+  const match = /\.([a-z0-9]+)$/i.exec(fileName.trim());
+  return match ? match[1].toLowerCase() : null;
+}
+
+function categoryOf(file: StoredFile): FileCategory {
+  const mimeType = file.properties?.mimeType ?? "";
+  const extension = extensionOf(file.properties?.fileName);
+  if (extension && CODE_EXTENSIONS.has(extension)) return "code";
+  if (mimeType.startsWith("image/")) return "image";
+  if (mimeType.startsWith("video/")) return "video";
+  if (mimeType.startsWith("audio/")) return "audio";
+  if (mimeType.includes("zip") || mimeType.includes("compressed")) return "archive";
+  if (mimeType.startsWith("text/") || mimeType.includes("pdf") || mimeType.includes("document")) return "document";
+  return "other";
+}
+
 export function FilesView() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [files, setFiles] = useState<StoredFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<FileCategory | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [selected, setSelected] = useState<StoredFile | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -82,7 +136,7 @@ export function FilesView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const filtered = useMemo(() => {
+  const searchFiltered = useMemo(() => {
     const q = filter.trim().toLowerCase();
     if (!q) return files;
     return files.filter((file) => {
@@ -96,6 +150,22 @@ export function FilesView() {
     });
   }, [files, filter]);
 
+  const categoryGroups = useMemo(() => {
+    const groups = new Map<FileCategory, StoredFile[]>();
+    for (const file of searchFiltered) {
+      const category = categoryOf(file);
+      const bucket = groups.get(category);
+      if (bucket) bucket.push(file);
+      else groups.set(category, [file]);
+    }
+    return CATEGORY_ORDER.map((key) => ({ key, files: groups.get(key) ?? [] })).filter((group) => group.files.length > 0);
+  }, [searchFiltered]);
+
+  const filtered = useMemo(() => {
+    if (!categoryFilter) return searchFiltered;
+    return searchFiltered.filter((file) => categoryOf(file) === categoryFilter);
+  }, [searchFiltered, categoryFilter]);
+
   return (
     <div className="flex min-h-full flex-col bg-background">
       <div className="flex items-center gap-2 px-6 py-3">
@@ -103,7 +173,7 @@ export function FilesView() {
           <Paperclip className="size-3" />
         </div>
         <h1 className="text-[15px] font-semibold">Files</h1>
-        {!loading ? <span className="text-[13px] text-muted-foreground">{files.length}</span> : null}
+        {!loading ? <AnimatedNumber value={files.length} className="text-[13px] text-muted-foreground" /> : null}
         <Button size="sm" className="ml-auto" onClick={() => setCreateOpen(true)}>
           <Plus className="size-3.5" />
           New
@@ -112,7 +182,9 @@ export function FilesView() {
 
       <div className="flex items-center gap-1.5 border-y bg-canvas px-6 py-1.5">
         <List className="size-3.5 text-muted-foreground" />
-        <span className="text-[13px] font-medium text-foreground/80">All Files</span>
+        <span className="text-[13px] font-medium text-foreground/80">
+          {categoryFilter ? CATEGORY_LABELS[categoryFilter] : "All Files"}
+        </span>
         <div className="relative ml-auto">
           <Search className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -123,6 +195,28 @@ export function FilesView() {
           />
         </div>
       </div>
+
+      {!loading && categoryGroups.length > 1 ? (
+        <div className="flex flex-wrap items-start gap-5 border-b px-6 py-4">
+          {categoryGroups.map((group) => (
+            <FolderPreview
+              key={group.key}
+              variant="nandi"
+              size="sm"
+              label={`${CATEGORY_LABELS[group.key]} (${group.files.length})`}
+              files={group.files.slice(0, 6).map<FolderPreviewFile>((file) => ({
+                name: file.properties?.fileName || file.title,
+                type: CATEGORY_PREVIEW_TYPE[group.key],
+              }))}
+              className={cn(
+                "rounded-lg transition-shadow",
+                categoryFilter === group.key && "shadow-[0_0_0_2px_var(--primary)]"
+              )}
+              onClick={() => setCategoryFilter((prev) => (prev === group.key ? null : group.key))}
+            />
+          ))}
+        </div>
+      ) : null}
 
       <div className="px-6">
         {loading ? (
@@ -171,7 +265,16 @@ export function FilesView() {
                     setDetailOpen(true);
                   }}
                 >
-                  <TableCell className="py-2 pl-0 text-[13px] font-medium">{file.title}</TableCell>
+                  <TableCell className="py-2 pl-0 text-[13px] font-medium">
+                    <span className="flex items-center gap-2">
+                      <FileTypeIcon
+                        mimeType={file.properties?.mimeType ?? ""}
+                        fileName={file.properties?.fileName}
+                        className="size-3.5 shrink-0 text-muted-foreground"
+                      />
+                      {file.title}
+                    </span>
+                  </TableCell>
                   <TableCell className="text-[13px] text-muted-foreground">{file.properties?.mimeType ?? "-"}</TableCell>
                   <TableCell className="text-[13px] text-muted-foreground">{formatBytes(file.properties?.size)}</TableCell>
                   <TableCell className="pr-0 text-right text-[13px] text-muted-foreground">{formatDate(file.createdAt)}</TableCell>
@@ -402,7 +505,14 @@ function FileDetailSheet({
         {file ? (
           <>
             <SheetHeader>
-              <SheetTitle>{file.title}</SheetTitle>
+              <SheetTitle className="flex items-center gap-2">
+                <FileTypeIcon
+                  mimeType={file.properties?.mimeType ?? ""}
+                  fileName={file.properties?.fileName}
+                  className="size-4 shrink-0 text-cyan-600"
+                />
+                <span className="truncate">{file.title}</span>
+              </SheetTitle>
             </SheetHeader>
             <div className="flex-1 overflow-y-auto px-4 py-4">
               <div className="mb-4 flex flex-col gap-1.5">
@@ -419,11 +529,12 @@ function FileDetailSheet({
               </div>
               <dl className="grid grid-cols-[88px_1fr] gap-x-3 gap-y-3 text-sm">
                 <dt className="text-muted-foreground">URL</dt>
-                <dd className="min-w-0">
-                  <a className="inline-flex max-w-full items-center gap-1 truncate text-primary hover:underline" href={file.properties?.url} target="_blank" rel="noreferrer">
+                <dd className="flex min-w-0 items-center gap-1.5">
+                  <a className="inline-flex min-w-0 flex-1 items-center gap-1 truncate text-primary hover:underline" href={file.properties?.url} target="_blank" rel="noreferrer">
                     <span className="truncate">{file.properties?.url}</span>
                     <ExternalLink className="size-3.5 shrink-0" />
                   </a>
+                  {file.properties?.url ? <CopyButton code={file.properties.url} /> : null}
                 </dd>
                 <dt className="text-muted-foreground">Type</dt>
                 <dd>{file.properties?.mimeType ?? "-"}</dd>

@@ -12,6 +12,9 @@ import type {
   EventProperties,
   FavoriteItem,
   FileProperties,
+  Form,
+  FormProperties,
+  FormResponse,
   GenericObject,
   Goal,
   GoalProperties,
@@ -26,6 +29,7 @@ import type {
   Person,
   Project,
   ProjectProperties,
+  PublicFormSchema,
   RecurringTransaction,
   RecurringTransactionProperties,
   Relation,
@@ -377,6 +381,56 @@ export const api = {
       const params = new URLSearchParams({ q });
       if (type) params.set("type", type);
       return request<GenericObject[]>(`/api/search?${params.toString()}`);
+    },
+  },
+  forms: {
+    list: () => request<Form[]>("/api/forms"),
+    get: (id: string) => request<Form>(`/api/forms/${id}`),
+    create: (input: { title: string }) =>
+      request<Form>("/api/forms", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    update: (id: string, input: { title?: string; properties?: FormProperties }) =>
+      request<Form>(`/api/forms/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(input),
+      }),
+    remove: (id: string) => request<Form>(`/api/forms/${id}`, { method: "DELETE" }),
+    publish: (id: string) => request<Form>(`/api/forms/${id}/publish`, { method: "POST" }),
+    unpublish: (id: string) => request<Form>(`/api/forms/${id}/unpublish`, { method: "POST" }),
+    responses: {
+      list: (formId: string) => request<FormResponse[]>(`/api/forms/${formId}/responses`),
+      get: (formId: string, responseId: string) =>
+        request<FormResponse>(`/api/forms/${formId}/responses/${responseId}`),
+      remove: (formId: string, responseId: string) =>
+        request<FormResponse>(`/api/forms/${formId}/responses/${responseId}`, { method: "DELETE" }),
+      exportCsv: async (formId: string) => {
+        const token = getToken();
+        const res = await fetch(`${API_URL}/api/forms/${formId}/responses/export.csv`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (!res.ok) throw new ApiError(`Export failed (${res.status})`, res.status);
+        return res.blob();
+      },
+    },
+  },
+  publicForms: {
+    getSchema: (formId: string) => request<PublicFormSchema>(`/api/public/forms/${formId}`),
+    submit: (formId: string, answers: Record<string, JsonValue>) =>
+      request<{ responseId: string; successMessage?: string }>(`/api/public/forms/${formId}/submit`, {
+        method: "POST",
+        body: JSON.stringify({ answers }),
+      }),
+    upload: async (formId: string, file: File) => {
+      const body = new FormData();
+      body.append("file", file);
+      const res = await fetch(`${API_URL}/api/public/forms/${formId}/upload`, { method: "POST", body });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok || !payload?.success) {
+        throw new ApiError(payload?.message ?? `Upload failed (${res.status})`, res.status);
+      }
+      return payload.data as { url: string; fileName: string; mimeType: string; size: number };
     },
   },
 };

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 import {
   ArrowRightLeft,
   Landmark,
@@ -36,12 +37,19 @@ export function MoneyTabs() {
             key={tab.href}
             href={tab.href}
             className={cn(
-              "flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1 text-[13px] font-medium transition-colors",
+              "relative flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1 text-[13px] font-medium transition-colors",
               active
-                ? "bg-background text-foreground shadow-sm"
+                ? "text-foreground"
                 : "text-muted-foreground hover:bg-background/60 hover:text-foreground"
             )}
           >
+            {active ? (
+              <motion.div
+                layoutId="money-tabs-active-pill"
+                className="absolute inset-0 -z-10 rounded-md bg-background shadow-sm"
+                transition={{ type: "spring", stiffness: 500, damping: 40 }}
+              />
+            ) : null}
             <tab.icon className={cn("size-3.5", active ? "text-lime-600" : "text-muted-foreground")} />
             {tab.label}
           </Link>

@@ -12,6 +12,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { CopyButton } from "@/components/ui/copy-button";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { api, ApiError } from "@/lib/api-client";
@@ -77,7 +78,11 @@ function FileDetailContent({
     <>
       <SheetHeader>
         <SheetTitle className="flex items-center gap-2 font-heading text-lg font-semibold">
-          <FileTypeIcon mimeType={props?.mimeType ?? ""} className="size-5 shrink-0 text-cyan-600" />
+          <FileTypeIcon
+            mimeType={props?.mimeType ?? ""}
+            fileName={props?.fileName}
+            className="size-5 shrink-0 text-cyan-600"
+          />
           <span className="truncate">{file.title}</span>
         </SheetTitle>
       </SheetHeader>
@@ -97,15 +102,18 @@ function FileDetailContent({
           <div className="flex flex-col gap-1">
             <Label className="text-muted-foreground">URL</Label>
             {props?.url ? (
-              <a
-                href={props.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-sm text-primary hover:underline"
-              >
-                <span className="truncate">{props.url}</span>
-                <ExternalLink className="size-3.5 shrink-0" />
-              </a>
+              <div className="flex items-center gap-1.5">
+                <a
+                  href={props.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex min-w-0 flex-1 items-center gap-1.5 text-sm text-primary hover:underline"
+                >
+                  <span className="truncate">{props.url}</span>
+                  <ExternalLink className="size-3.5 shrink-0" />
+                </a>
+                <CopyButton code={props.url} />
+              </div>
             ) : (
               <p className="text-sm text-muted-foreground">—</p>
             )}

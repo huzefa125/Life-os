@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, Plus, Target, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { AnimatedNumber } from "@/components/ui/animated-number";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -78,7 +79,12 @@ export function GoalsView() {
           <Target className="size-3" />
         </div>
         <h1 className="text-[15px] font-semibold">Money</h1>
-        {!loading ? <span className="text-[13px] text-muted-foreground">{goals.length} goals</span> : null}
+        {!loading ? (
+          <span className="flex items-center gap-1 text-[13px] text-muted-foreground">
+            <AnimatedNumber value={goals.length} />
+            goals
+          </span>
+        ) : null}
         <Button size="sm" className="ml-auto" onClick={() => setCreateOpen(true)}>
           <Plus className="size-3.5" />
           New goal

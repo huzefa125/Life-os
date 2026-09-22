@@ -3,6 +3,7 @@ import {
   BookOpen,
   CalendarDays,
   CheckSquare,
+  ClipboardList,
   FileText,
   FolderKanban,
   History,
@@ -30,6 +31,7 @@ export const navItems: NavItem[] = [
   { label: "Events", href: "/events", icon: CalendarDays, enabled: true, color: "text-rose-600" },
   { label: "Files", href: "/files", icon: Paperclip, enabled: true, color: "text-cyan-600" },
   { label: "Money", href: "/money", icon: Wallet, enabled: true, color: "text-lime-600" },
+  { label: "Forms", href: "/forms", icon: ClipboardList, enabled: true, color: "text-indigo-600" },
   { label: "Timeline", href: "/timeline", icon: History, enabled: true, color: "text-slate-500" },
 ];
 

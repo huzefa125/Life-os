@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { AnimatedNumber } from "@/components/ui/animated-number";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api, ApiError } from "@/lib/api-client";
@@ -97,7 +98,7 @@ export function TimelineView() {
           <History className="size-3" />
         </div>
         <h1 className="text-[15px] font-semibold">Timeline</h1>
-        {!loading ? <span className="text-[13px] text-muted-foreground">{items.length}</span> : null}
+        {!loading ? <AnimatedNumber value={items.length} className="text-[13px] text-muted-foreground" /> : null}
       </div>
 
       <div className="flex items-center gap-1.5 border-y bg-canvas px-6 py-1.5">

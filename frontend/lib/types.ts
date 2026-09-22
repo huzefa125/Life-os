@@ -366,6 +366,128 @@ export interface DetailedObject {
   activities: ActivityItem[];
 }
 
+export type FormFieldType =
+  | "short_text"
+  | "long_text"
+  | "email"
+  | "phone"
+  | "number"
+  | "datetime"
+  | "dropdown"
+  | "radio"
+  | "checkbox"
+  | "rating"
+  | "url"
+  | "currency"
+  | "address"
+  | "file";
+
+export type FormConditionOperator = "equals" | "not_equals" | "contains" | "is_empty" | "is_not_empty";
+
+export interface FormCondition {
+  fieldId: string;
+  operator: FormConditionOperator;
+  value?: string;
+}
+
+export interface FormField {
+  id: string;
+  type: FormFieldType;
+  label: string;
+  helpText?: string;
+  placeholder?: string;
+  required: boolean;
+  options?: string[];
+  min?: number;
+  max?: number;
+  step?: number;
+  currencyCode?: string;
+  ratingMax?: number;
+  maxSizeMB?: number;
+  acceptedMimeTypes?: string[];
+  visibleIf?: FormCondition;
+}
+
+export type FormFieldMapping =
+  | { source: "field"; fieldId: string }
+  | { source: "static"; value: JsonValue }
+  | { source: "action_object_id"; actionId: string };
+
+export type FormAutomationType = "create_person" | "create_project" | "create_task" | "create_transaction";
+
+export interface FormAutomationRelation {
+  relationType: RelationType;
+  sourceActionId: string;
+  targetActionId: string;
+}
+
+export interface FormAutomation {
+  id: string;
+  type: FormAutomationType;
+  label?: string;
+  condition?: FormCondition;
+  titleMapping: FormFieldMapping;
+  propertyMappings: Record<string, FormFieldMapping>;
+  relations?: FormAutomationRelation[];
+}
+
+export interface FormProperties {
+  description?: string;
+  fields: FormField[];
+  published: boolean;
+  publishedAt?: string;
+  automations: FormAutomation[];
+  submitButtonLabel?: string;
+  successMessage?: string;
+}
+
+export interface Form {
+  id: string;
+  type: "form";
+  title: string;
+  properties: FormProperties | null;
+  tags?: string[];
+  status?: "active" | "archived" | "trash";
+  isFavorite?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FormResponseCreatedObject {
+  actionId: string;
+  actionType: FormAutomationType;
+  objectId: string;
+  objectType: string;
+  objectTitle: string;
+}
+
+export interface FormResponseProperties {
+  formId: string;
+  answers: Record<string, JsonValue>;
+  submittedAt: string;
+  createdObjects: FormResponseCreatedObject[];
+}
+
+export interface FormResponse {
+  id: string;
+  type: "form_response";
+  title: string;
+  properties: FormResponseProperties | null;
+  tags?: string[];
+  status?: "active" | "archived" | "trash";
+  isFavorite?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PublicFormSchema {
+  id: string;
+  title: string;
+  description?: string;
+  fields: FormField[];
+  submitButtonLabel?: string;
+}
+
 export interface FavoriteItem extends GenericObject {
   favoriteId: string;
   favoritedAt: string;
@@ -390,7 +512,9 @@ export type RelationType =
   | "in_category"
   | "transfer_to"
   | "for_category"
-  | "funds_from";
+  | "funds_from"
+  | "has_response"
+  | "created";
 
 export interface Relation {
   id: string;

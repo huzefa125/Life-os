@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Landmark, Plus, Trash2, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
+import { AnimatedNumber } from "@/components/ui/animated-number";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -88,7 +89,12 @@ export function AccountsView() {
           <Wallet className="size-3" />
         </div>
         <h1 className="text-[15px] font-semibold">Money</h1>
-        {!loading ? <span className="text-[13px] text-muted-foreground">{accounts.length} accounts</span> : null}
+        {!loading ? (
+          <span className="flex items-center gap-1 text-[13px] text-muted-foreground">
+            <AnimatedNumber value={accounts.length} />
+            accounts
+          </span>
+        ) : null}
         {!loading && totalsByCurrency.length > 0 ? (
           <span className="text-[13px] text-muted-foreground">
             {totalsByCurrency.map(([currency, total]) => formatMoney(total, currency)).join(" · ")}
