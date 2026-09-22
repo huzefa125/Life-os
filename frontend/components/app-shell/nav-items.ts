@@ -1,6 +1,7 @@
 import {
   Archive,
   BookOpen,
+  Building2,
   CalendarDays,
   CheckSquare,
   ClipboardList,
@@ -25,6 +26,7 @@ export interface NavItem {
 export const navItems: NavItem[] = [
   { label: "Pages", href: "/pages", icon: BookOpen, enabled: true, color: "text-orange-500" },
   { label: "People", href: "/people", icon: Users, enabled: true, color: "text-violet-600" },
+  { label: "Companies", href: "/companies", icon: Building2, enabled: true, color: "text-fuchsia-600" },
   { label: "Tasks", href: "/tasks", icon: CheckSquare, enabled: true, color: "text-emerald-600" },
   { label: "Projects", href: "/projects", icon: FolderKanban, enabled: true, color: "text-blue-600" },
   { label: "Notes", href: "/notes", icon: FileText, enabled: true, color: "text-amber-600" },

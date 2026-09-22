@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { api, ApiError } from "@/lib/api-client";
+import { DEFAULT_FORM_SETTINGS } from "@/lib/form-field-meta";
 import { FORM_TEMPLATES } from "@/lib/form-templates";
 import { FormsTabs } from "./forms-tabs";
 
@@ -25,7 +26,7 @@ export function TemplatesGallery() {
         properties: {
           description: template.formDescription,
           fields: template.fields,
-          published: false,
+          settings: DEFAULT_FORM_SETTINGS,
           automations: template.automations,
         },
       });

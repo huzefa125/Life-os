@@ -11,11 +11,14 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { api, ApiError } from "@/lib/api-client";
-import { FORM_FIELD_TYPES, FIELD_TYPE_LABELS, newFieldId } from "@/lib/form-field-meta";
-import type { Form, FormAutomation, FormField } from "@/lib/types";
+import { DEFAULT_FORM_SETTINGS, FORM_FIELD_TYPES, FIELD_TYPE_LABELS, newFieldId } from "@/lib/form-field-meta";
+import type { Form, FormAutomation, FormDesign, FormField, FormSection, FormSettings } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { AutomationEditor } from "./automation-editor";
 import { FieldEditor } from "./field-editor";
+import { FormSettingsPanel } from "./form-settings-panel";
+import { SectionsEditor } from "./sections-editor";
+import { ShareFormPanel } from "./share-form-panel";
 
 export function FormBuilderView({ initialForm }: { initialForm: Form }) {
   const router = useRouter();
@@ -23,12 +26,17 @@ export function FormBuilderView({ initialForm }: { initialForm: Form }) {
   const [title, setTitle] = useState(initialForm.title);
   const [description, setDescription] = useState(initialForm.properties?.description ?? "");
   const [fields, setFields] = useState<FormField[]>(initialForm.properties?.fields ?? []);
+  const [sections, setSections] = useState<FormSection[]>(initialForm.properties?.sections ?? []);
   const [automations, setAutomations] = useState<FormAutomation[]>(initialForm.properties?.automations ?? []);
+  const [settings, setSettings] = useState<FormSettings>(initialForm.properties?.settings ?? DEFAULT_FORM_SETTINGS);
+  const [design, setDesign] = useState<FormDesign>(initialForm.properties?.design ?? {});
+  const [submitButtonLabel, setSubmitButtonLabel] = useState(initialForm.properties?.submitButtonLabel ?? "");
+  const [successMessage, setSuccessMessage] = useState(initialForm.properties?.successMessage ?? "");
   const [saving, setSaving] = useState(false);
-  const [publishing, setPublishing] = useState(false);
+  const [statusChanging, setStatusChanging] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
 
-  const published = form.properties?.published ?? false;
+  const status = settings.status;
 
   function markDirty<T>(setter: (value: T) => void) {
     return (value: T) => {
@@ -40,7 +48,12 @@ export function FormBuilderView({ initialForm }: { initialForm: Form }) {
   const setTitleDirty = markDirty(setTitle);
   const setDescriptionDirty = markDirty(setDescription);
   const setFieldsDirty = markDirty(setFields);
+  const setSectionsDirty = markDirty(setSections);
   const setAutomationsDirty = markDirty(setAutomations);
+  const setSettingsDirty = markDirty(setSettings);
+  const setDesignDirty = markDirty(setDesign);
+  const setSubmitButtonLabelDirty = markDirty(setSubmitButtonLabel);
+  const setSuccessMessageDirty = markDirty(setSuccessMessage);
 
   function addField(type: FormField["type"]) {
     setFieldsDirty([
@@ -56,7 +69,7 @@ export function FormBuilderView({ initialForm }: { initialForm: Form }) {
   function deleteField(index: number) {
     const removedId = fields[index].id;
     setFieldsDirty(fields.filter((_, i) => i !== index));
-    // Drop any conditions pointing at the field we just removed.
+    // Drop any conditions/mappings pointing at the field we just removed.
     setAutomationsDirty(
       automations.map((a) => (a.condition?.fieldId === removedId ? { ...a, condition: undefined } : a))
     );
@@ -70,22 +83,24 @@ export function FormBuilderView({ initialForm }: { initialForm: Form }) {
     setFieldsDirty(next);
   }
 
+  function buildProperties() {
+    return {
+      description: description || undefined,
+      fields,
+      sections: sections.length > 0 ? sections : undefined,
+      settings,
+      design: Object.values(design).some(Boolean) ? design : undefined,
+      automations,
+      submitButtonLabel: submitButtonLabel || undefined,
+      successMessage: successMessage || undefined,
+    };
+  }
+
   async function handleSave() {
     if (!title.trim() || saving) return;
     setSaving(true);
     try {
-      const updated = await api.forms.update(form.id, {
-        title: title.trim(),
-        properties: {
-          description: description || undefined,
-          fields,
-          published: form.properties?.published ?? false,
-          publishedAt: form.properties?.publishedAt,
-          automations,
-          submitButtonLabel: form.properties?.submitButtonLabel,
-          successMessage: form.properties?.successMessage,
-        },
-      });
+      const updated = await api.forms.update(form.id, { title: title.trim(), properties: buildProperties() });
       setForm(updated);
       setIsDirty(false);
       toast.success("Form saved");
@@ -96,23 +111,20 @@ export function FormBuilderView({ initialForm }: { initialForm: Form }) {
     }
   }
 
-  async function handlePublishToggle() {
-    setPublishing(true);
+  async function handleStatusAction(action: "publish" | "unpublish" | "close" | "reopen") {
+    setStatusChanging(true);
     try {
-      if (published) {
-        const updated = await api.forms.unpublish(form.id);
-        setForm(updated);
-        toast.success("Form unpublished");
-      } else {
-        if (isDirty) await handleSave();
-        const updated = await api.forms.publish(form.id);
-        setForm(updated);
-        toast.success("Form published");
-      }
+      if (isDirty) await handleSave();
+      const updated = await api.forms[action](form.id);
+      setForm(updated);
+      setSettings(updated.properties?.settings ?? settings);
+      toast.success(
+        action === "publish" ? "Form published" : action === "unpublish" ? "Form set back to draft" : action === "close" ? "Form closed" : "Form reopened"
+      );
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Couldn't update publish state");
+      toast.error(err instanceof ApiError ? err.message : "Couldn't update form status");
     } finally {
-      setPublishing(false);
+      setStatusChanging(false);
     }
   }
 
@@ -139,7 +151,7 @@ export function FormBuilderView({ initialForm }: { initialForm: Form }) {
         </div>
 
         <div className="flex items-center gap-1.5">
-          {published ? (
+          {status === "published" ? (
             <a
               href={`/f/${form.id}`}
               target="_blank"
@@ -154,9 +166,24 @@ export function FormBuilderView({ initialForm }: { initialForm: Form }) {
             <Trash2 className="size-3.5" />
           </Button>
           <Separator orientation="vertical" className="h-4" />
-          <Button variant={published ? "outline" : "default"} size="xs" disabled={publishing} onClick={handlePublishToggle}>
-            {publishing ? "…" : published ? "Unpublish" : "Publish"}
-          </Button>
+          {status === "draft" ? (
+            <Button size="xs" disabled={statusChanging} onClick={() => handleStatusAction("publish")}>
+              {statusChanging ? "…" : "Publish"}
+            </Button>
+          ) : status === "published" ? (
+            <>
+              <Button variant="outline" size="xs" disabled={statusChanging} onClick={() => handleStatusAction("close")}>
+                Close
+              </Button>
+              <Button variant="outline" size="xs" disabled={statusChanging} onClick={() => handleStatusAction("unpublish")}>
+                Unpublish
+              </Button>
+            </>
+          ) : (
+            <Button size="xs" disabled={statusChanging} onClick={() => handleStatusAction("reopen")}>
+              {statusChanging ? "…" : "Reopen"}
+            </Button>
+          )}
           <Button size="xs" onClick={handleSave} disabled={saving || !isDirty || !title.trim()} className="gap-1.5 shadow-xs">
             {saving ? (
               <span>Saving…</span>
@@ -174,6 +201,8 @@ export function FormBuilderView({ initialForm }: { initialForm: Form }) {
           </Button>
         </div>
       </div>
+
+      {status === "published" ? <ShareFormPanel formId={form.id} /> : null}
 
       <div className="rounded-xl border border-border/80 bg-background p-6 shadow-xs sm:p-10">
         <div className="flex flex-col gap-3">
@@ -194,6 +223,13 @@ export function FormBuilderView({ initialForm }: { initialForm: Form }) {
         <Separator className="my-6" />
 
         <div className="flex flex-col gap-3">
+          <h2 className="text-[13px] font-semibold text-foreground/80">Pages</h2>
+          <SectionsEditor sections={sections} fields={fields} onChange={setSectionsDirty} />
+        </div>
+
+        <Separator className="my-6" />
+
+        <div className="flex flex-col gap-3">
           <h2 className="flex items-center gap-1.5 text-[13px] font-semibold text-foreground/80">
             <ClipboardList className="size-3.5" />
             Fields
@@ -205,6 +241,7 @@ export function FormBuilderView({ initialForm }: { initialForm: Form }) {
               index={index}
               total={fields.length}
               earlierFields={fields.slice(0, index)}
+              sections={sections}
               onChange={(updated) => updateField(index, updated)}
               onDelete={() => deleteField(index)}
               onMoveUp={() => moveField(index, -1)}
@@ -230,10 +267,60 @@ export function FormBuilderView({ initialForm }: { initialForm: Form }) {
               LifeOS automation
             </h2>
             <p className="text-[12px] text-muted-foreground">
-              Turn every submission into real LifeOS objects — a Person, Project, Task, or Money Transaction.
+              Turn every submission into real LifeOS objects — a Person, Company, Project, Task, or Money Transaction.
             </p>
           </div>
           <AutomationEditor automations={automations} fields={fields} onChange={setAutomationsDirty} />
+        </div>
+
+        <Separator className="my-6" />
+
+        <div className="flex flex-col gap-3">
+          <h2 className="text-[13px] font-semibold text-foreground/80">Settings</h2>
+          <FormSettingsPanel settings={settings} onChange={setSettingsDirty} />
+        </div>
+
+        <Separator className="my-6" />
+
+        <div className="flex flex-col gap-3">
+          <h2 className="text-[13px] font-semibold text-foreground/80">Design</h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-[12px] text-muted-foreground">Accent color</Label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={design.accentColor ?? "#4f46e5"}
+                  onChange={(e) => setDesignDirty({ ...design, accentColor: e.target.value })}
+                  className="h-8 w-10 rounded border"
+                />
+                <Input
+                  value={design.accentColor ?? ""}
+                  onChange={(e) => setDesignDirty({ ...design, accentColor: e.target.value || undefined })}
+                  placeholder="#4f46e5"
+                  className="h-8 flex-1 text-[13px]"
+                />
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-[12px] text-muted-foreground">Logo URL</Label>
+              <Input
+                value={design.logoUrl ?? ""}
+                onChange={(e) => setDesignDirty({ ...design, logoUrl: e.target.value || undefined })}
+                placeholder="https://…/logo.png"
+                className="h-8 text-[13px]"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5 sm:col-span-2">
+              <Label className="text-[12px] text-muted-foreground">Cover image URL</Label>
+              <Input
+                value={design.coverImageUrl ?? ""}
+                onChange={(e) => setDesignDirty({ ...design, coverImageUrl: e.target.value || undefined })}
+                placeholder="https://…/cover.jpg"
+                className="h-8 text-[13px]"
+              />
+            </div>
+          </div>
         </div>
 
         <Separator className="my-6" />
@@ -242,23 +329,17 @@ export function FormBuilderView({ initialForm }: { initialForm: Form }) {
           <div className="flex flex-col gap-1.5">
             <Label className="text-[12px] text-muted-foreground">Submit button label</Label>
             <Input
-              value={form.properties?.submitButtonLabel ?? ""}
-              onChange={(e) => {
-                setForm((prev) => ({ ...prev, properties: { ...prev.properties!, submitButtonLabel: e.target.value || undefined } }));
-                setIsDirty(true);
-              }}
+              value={submitButtonLabel}
+              onChange={(e) => setSubmitButtonLabelDirty(e.target.value)}
               placeholder="Submit"
               className="h-8 text-[13px]"
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label className="text-[12px] text-muted-foreground">Success message</Label>
+            <Label className="text-[12px] text-muted-foreground">Confirmation message</Label>
             <Input
-              value={form.properties?.successMessage ?? ""}
-              onChange={(e) => {
-                setForm((prev) => ({ ...prev, properties: { ...prev.properties!, successMessage: e.target.value || undefined } }));
-                setIsDirty(true);
-              }}
+              value={successMessage}
+              onChange={(e) => setSuccessMessageDirty(e.target.value)}
               placeholder="Thanks for submitting!"
               className="h-8 text-[13px]"
             />

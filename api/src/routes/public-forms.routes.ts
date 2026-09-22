@@ -7,6 +7,7 @@ const router = Router();
 
 // No authMiddleware anywhere in this router — respondents are never logged in.
 router.get("/:formId", publicFormController.getPublicForm);
+router.get("/:formId/responses/:responseId", publicFormController.getResumableResponse);
 router.post("/:formId/submit", publicFormController.submitPublicForm);
 router.post(
   "/:formId/upload",

@@ -19,3 +19,21 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
     return sendError(res, "Invalid or expired token", 401);
   }
 }
+
+/**
+ * Non-throwing variant for public routes that behave differently for a
+ * logged-in caller without requiring one — e.g. a form's "require login" or
+ * "anonymous responses" setting. Returns null for a missing/invalid token
+ * rather than rejecting the request.
+ */
+export function getOptionalUserId(req: Request): string | null {
+  const header = req.headers.authorization;
+  if (!header || !header.startsWith("Bearer ")) return null;
+
+  try {
+    const payload = jwt.verify(header.slice("Bearer ".length), env.JWT_SECRET) as { userId: string };
+    return payload.userId;
+  } catch {
+    return null;
+  }
+}

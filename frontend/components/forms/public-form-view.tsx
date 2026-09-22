@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { CheckCircle2, ClipboardList, Loader2, Star, Upload } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { CheckCircle2, ClipboardList, Copy, Loader2, Lock, Star, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -11,16 +11,35 @@ import { Textarea } from "@/components/ui/textarea";
 import { api, ApiError } from "@/lib/api-client";
 import { evaluateCondition } from "@/lib/form-condition";
 import { cn } from "@/lib/utils";
-import type { FormField, JsonValue, PublicFormSchema } from "@/lib/types";
+import type { FormField, FormSection, JsonValue, PublicFormSchema } from "@/lib/types";
 
 type AddressValue = { line1?: string; line2?: string; city?: string; state?: string; postalCode?: string; country?: string };
 type UploadedFile = { url: string; fileName: string; mimeType: string; size: number };
+
+const OTHER_SENTINEL = "__other__";
 
 function isEmptyAnswer(value: unknown): boolean {
   if (value === undefined || value === null) return true;
   if (Array.isArray(value)) return value.length === 0;
   if (typeof value === "object") return Object.values(value).every((v) => !v);
   return String(value).trim().length === 0;
+}
+
+function shuffled<T>(items: T[]): T[] {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function useOptions(field: FormField): string[] {
+  return useMemo(() => {
+    const base = field.options ?? [];
+    return field.randomizeOptions ? shuffled(base) : base;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [field.id]);
 }
 
 function FieldRenderer({
@@ -35,6 +54,7 @@ function FieldRenderer({
   formId: string;
 }) {
   const [uploading, setUploading] = useState(false);
+  const options = useOptions(field);
 
   switch (field.type) {
     case "short_text":
@@ -48,6 +68,8 @@ function FieldRenderer({
           onChange={(e) => onChange(e.target.value)}
           placeholder={field.placeholder}
           required={field.required}
+          minLength={field.minLength}
+          maxLength={field.maxLength}
         />
       );
     case "long_text":
@@ -57,6 +79,8 @@ function FieldRenderer({
           onChange={(e) => onChange(e.target.value)}
           placeholder={field.placeholder}
           required={field.required}
+          minLength={field.minLength}
+          maxLength={field.maxLength}
           className="min-h-24"
         />
       );
@@ -109,18 +133,19 @@ function FieldRenderer({
           <option value="" disabled>
             {field.placeholder ?? "Select an option"}
           </option>
-          {(field.options ?? []).map((opt) => (
+          {options.map((opt) => (
             <option key={opt} value={opt}>
               {opt}
             </option>
           ))}
+          {field.allowOther ? <option value={OTHER_SENTINEL}>Other</option> : null}
         </select>
       );
     case "radio":
       return (
         <div className="flex flex-col gap-1.5">
-          {(field.options ?? []).map((opt) => (
-            <label key={opt} className="flex items-center gap-2 text-sm">
+          {options.map((opt) => (
+            <label key={opt} className="flex items-start gap-2 text-sm">
               <input
                 type="radio"
                 name={field.id}
@@ -128,30 +153,78 @@ function FieldRenderer({
                 checked={value === opt}
                 onChange={() => onChange(opt)}
                 required={field.required}
-                className="size-3.5 accent-primary"
+                className="mt-0.5 size-3.5 accent-primary"
               />
-              {opt}
+              <span className="flex flex-col">
+                {opt}
+                {field.optionDescriptions?.[opt] ? (
+                  <span className="text-[12px] text-muted-foreground">{field.optionDescriptions[opt]}</span>
+                ) : null}
+              </span>
             </label>
           ))}
+          {field.allowOther ? (
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="radio"
+                name={field.id}
+                checked={typeof value === "string" && !options.includes(value) && value !== ""}
+                onChange={() => onChange("")}
+                className="size-3.5 accent-primary"
+              />
+              <Input
+                value={typeof value === "string" && !options.includes(value) ? value : ""}
+                onChange={(e) => onChange(e.target.value)}
+                placeholder="Other"
+                className="h-7 flex-1 text-[13px]"
+              />
+            </label>
+          ) : null}
         </div>
       );
     case "checkbox": {
       const selected = Array.isArray(value) ? (value as string[]) : [];
+      const otherValue = selected.find((v) => !options.includes(v)) ?? "";
       return (
         <div className="flex flex-col gap-1.5">
-          {(field.options ?? []).map((opt) => (
-            <label key={opt} className="flex items-center gap-2 text-sm">
+          {options.map((opt) => (
+            <label key={opt} className="flex items-start gap-2 text-sm">
               <input
                 type="checkbox"
                 checked={selected.includes(opt)}
-                onChange={(e) =>
-                  onChange(e.target.checked ? [...selected, opt] : selected.filter((o) => o !== opt))
-                }
-                className="size-3.5 accent-primary"
+                onChange={(e) => onChange(e.target.checked ? [...selected, opt] : selected.filter((o) => o !== opt))}
+                className="mt-0.5 size-3.5 accent-primary"
               />
-              {opt}
+              <span className="flex flex-col">
+                {opt}
+                {field.optionDescriptions?.[opt] ? (
+                  <span className="text-[12px] text-muted-foreground">{field.optionDescriptions[opt]}</span>
+                ) : null}
+              </span>
             </label>
           ))}
+          {field.allowOther ? (
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={!!otherValue}
+                onChange={(e) => {
+                  const withoutOther = selected.filter((v) => options.includes(v));
+                  onChange(e.target.checked ? [...withoutOther, ""] : withoutOther);
+                }}
+                className="size-3.5 accent-primary"
+              />
+              <Input
+                value={otherValue}
+                onChange={(e) => {
+                  const withoutOther = selected.filter((v) => options.includes(v));
+                  onChange([...withoutOther, e.target.value]);
+                }}
+                placeholder="Other"
+                className="h-7 flex-1 text-[13px]"
+              />
+            </label>
+          ) : null}
         </div>
       );
     }
@@ -228,42 +301,209 @@ function FieldRenderer({
   }
 }
 
+interface Page {
+  section?: FormSection;
+  fields: FormField[];
+}
+
+function buildPages(schema: PublicFormSchema, answers: Record<string, unknown>): Page[] {
+  const sections = schema.sections ?? [];
+  if (sections.length === 0) return [{ fields: schema.fields }];
+
+  const pages: Page[] = [];
+  const unassigned = schema.fields.filter((f) => !f.sectionId);
+  if (unassigned.length > 0) pages.push({ fields: unassigned });
+
+  for (const section of sections) {
+    if (evaluateCondition(section.skipIf, answers)) continue;
+    pages.push({ section, fields: schema.fields.filter((f) => f.sectionId === section.id) });
+  }
+  return pages.length > 0 ? pages : [{ fields: schema.fields }];
+}
+
+function storageKeyFor(formId: string) {
+  return `lifeos-form-${formId}`;
+}
+
+function readLocalRecord(formId: string): { responseId: string; submitted: boolean } | null {
+  try {
+    const raw = localStorage.getItem(storageKeyFor(formId));
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeLocalRecord(formId: string, record: { responseId: string; submitted: boolean }) {
+  try {
+    localStorage.setItem(storageKeyFor(formId), JSON.stringify(record));
+  } catch {
+    // localStorage unavailable (private mode, etc.) — one-per-person/resume just won't persist
+  }
+}
+
 export function PublicFormView({ schema }: { schema: PublicFormSchema }) {
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState<{ successMessage?: string } | null>(null);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [result, setResult] = useState<{ successMessage?: string; redirectUrl?: string; resumeUrl?: string } | null>(null);
+  const [pageIndex, setPageIndex] = useState(0);
+  const [resumeId, setResumeId] = useState<string | null>(null);
+  const [loadingResume, setLoadingResume] = useState(true);
+  const [blocked, setBlocked] = useState<string | null>(null);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const resumeParam = params.get("resume");
+    const local = readLocalRecord(schema.id);
+
+    if (schema.onePerPerson && local?.submitted && !schema.allowResponseEditing) {
+      // Reading localStorage requires the client; can't be a lazy useState
+      // initializer without mismatching the SSR'd markup.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setBlocked("You've already responded to this form.");
+      setLoadingResume(false);
+      return;
+    }
+
+    const canResume = schema.allowResponseEditing || schema.saveAndResumeLater;
+    const targetId = resumeParam || (canResume && local && !local.submitted ? local.responseId : null) || (canResume && local?.submitted && schema.allowResponseEditing ? local.responseId : null);
+
+    if (canResume && targetId) {
+      setResumeId(targetId);
+      api.publicForms
+        .getResumable(schema.id, targetId)
+        .then((data) => setAnswers(data.answers))
+        .catch(() => {})
+        .finally(() => setLoadingResume(false));
+    } else {
+      setLoadingResume(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [schema.id]);
+
+  const pages = useMemo(() => buildPages(schema, answers), [schema, answers]);
+  const page = pages[pageIndex] ?? pages[0];
+  const isLastPage = pageIndex === pages.length - 1;
   const visibleFields = useMemo(
-    () => schema.fields.filter((field) => evaluateCondition(field.visibleIf, answers)),
-    [schema.fields, answers]
+    () => page.fields.filter((field) => evaluateCondition(field.visibleIf, answers)),
+    [page, answers]
   );
 
   function setAnswer(fieldId: string, value: unknown) {
     setAnswers((prev) => ({ ...prev, [fieldId]: value }));
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-
-    for (const field of visibleFields) {
+  function validatePage(fields: FormField[]): boolean {
+    for (const field of fields) {
       if (field.required && isEmptyAnswer(answers[field.id])) {
         toast.error(`"${field.label}" is required`);
-        return;
+        return false;
       }
     }
+    return true;
+  }
+
+  function relevantAnswers() {
+    const allVisible = pages.flatMap((p) => p.fields).filter((f) => evaluateCondition(f.visibleIf, answers));
+    return Object.fromEntries(allVisible.map((f) => [f.id, answers[f.id]]).filter(([, v]) => v !== undefined));
+  }
+
+  function goNext() {
+    if (!validatePage(visibleFields)) return;
+    setPageIndex((i) => Math.min(i + 1, pages.length - 1));
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!validatePage(visibleFields)) return;
 
     setSubmitting(true);
     try {
-      const relevantAnswers = Object.fromEntries(
-        visibleFields.map((field) => [field.id, answers[field.id]]).filter(([, value]) => value !== undefined)
-      );
-      const response = await api.publicForms.submit(schema.id, relevantAnswers as Record<string, JsonValue>);
+      const response = await api.publicForms.submit(schema.id, relevantAnswers() as Record<string, JsonValue>, {
+        resumeId: resumeId ?? undefined,
+      });
+      writeLocalRecord(schema.id, { responseId: response.responseId, submitted: true });
+      if (response.redirectUrl) {
+        window.location.href = response.redirectUrl;
+        return;
+      }
       setResult({ successMessage: response.successMessage });
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Couldn't submit the form");
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function handleSaveForLater() {
+    setSavingDraft(true);
+    try {
+      const response = await api.publicForms.submit(schema.id, relevantAnswers() as Record<string, JsonValue>, {
+        draft: true,
+        resumeId: resumeId ?? undefined,
+      });
+      writeLocalRecord(schema.id, { responseId: response.responseId, submitted: false });
+      const url = `${window.location.origin}/f/${schema.id}?resume=${response.responseId}`;
+      setResult({ resumeUrl: url });
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Couldn't save your progress");
+    } finally {
+      setSavingDraft(false);
+    }
+  }
+
+  const accentColor = schema.design?.accentColor;
+  const isCard = schema.layout === "card";
+
+  if (loadingResume) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (blocked) {
+    return (
+      <div className="mx-auto flex max-w-xl flex-col items-center gap-2 px-4 py-24 text-center">
+        <Lock className="size-8 text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">{blocked}</p>
+      </div>
+    );
+  }
+
+  if (!resumeId && schema.availability.status !== "open") {
+    return (
+      <div className="mx-auto flex max-w-xl flex-col items-center gap-2 px-4 py-24 text-center">
+        <Lock className="size-8 text-muted-foreground" />
+        <h1 className="text-lg font-medium">{schema.title}</h1>
+        <p className="text-sm text-muted-foreground">{schema.availability.message ?? "This form isn't available."}</p>
+      </div>
+    );
+  }
+
+  if (result?.resumeUrl) {
+    return (
+      <div className="mx-auto flex max-w-xl flex-col items-center gap-3 px-4 py-24 text-center">
+        <CheckCircle2 className="size-10 text-emerald-500" />
+        <p className="text-lg font-medium">Your progress is saved.</p>
+        <p className="text-sm text-muted-foreground">Use this link to come back and finish later:</p>
+        <div className="flex items-center gap-2">
+          <code className="rounded-md border bg-muted/40 px-2.5 py-1.5 text-[12px]">{result.resumeUrl}</code>
+          <Button
+            size="xs"
+            variant="outline"
+            onClick={() => {
+              navigator.clipboard.writeText(result.resumeUrl!);
+              toast.success("Link copied");
+            }}
+          >
+            <Copy className="size-3" />
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   if (result) {
@@ -275,17 +515,51 @@ export function PublicFormView({ schema }: { schema: PublicFormSchema }) {
     );
   }
 
-  return (
-    <div className="mx-auto max-w-xl px-4 py-10 sm:py-16">
+  const formBody = (
+    <>
+      {schema.design?.coverImageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={schema.design.coverImageUrl} alt="" className="mb-4 h-40 w-full rounded-lg object-cover" />
+      ) : null}
+
       <div className="mb-6 flex items-center gap-2">
-        <div className="flex size-8 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
-          <ClipboardList className="size-4" />
-        </div>
+        {schema.design?.logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={schema.design.logoUrl} alt="" className="size-8 rounded-lg object-contain" />
+        ) : (
+          <div
+            className="flex size-8 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600"
+            style={accentColor ? { backgroundColor: `${accentColor}22`, color: accentColor } : undefined}
+          >
+            <ClipboardList className="size-4" />
+          </div>
+        )}
         <div>
           <h1 className="text-xl font-semibold">{schema.title}</h1>
           {schema.description ? <p className="text-sm text-muted-foreground">{schema.description}</p> : null}
         </div>
       </div>
+
+      {pages.length > 1 && schema.showProgressBar !== false ? (
+        <div className="mb-6">
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary transition-all"
+              style={{ width: `${((pageIndex + 1) / pages.length) * 100}%`, ...(accentColor ? { backgroundColor: accentColor } : {}) }}
+            />
+          </div>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Page {pageIndex + 1} of {pages.length}
+          </p>
+        </div>
+      ) : null}
+
+      {page.section ? (
+        <div className="mb-4">
+          <h2 className="text-base font-semibold">{page.section.title}</h2>
+          {page.section.description ? <p className="text-sm text-muted-foreground">{page.section.description}</p> : null}
+        </div>
+      ) : null}
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         {visibleFields.map((field) => (
@@ -299,10 +573,34 @@ export function PublicFormView({ schema }: { schema: PublicFormSchema }) {
           </div>
         ))}
 
-        <Button type="submit" disabled={submitting} className="mt-2 w-fit">
-          {submitting ? "Submitting…" : schema.submitButtonLabel || "Submit"}
-        </Button>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {pageIndex > 0 ? (
+            <Button type="button" variant="outline" onClick={() => setPageIndex((i) => Math.max(0, i - 1))}>
+              Back
+            </Button>
+          ) : null}
+          {!isLastPage ? (
+            <Button type="button" onClick={goNext} style={accentColor ? { backgroundColor: accentColor } : undefined}>
+              Next
+            </Button>
+          ) : (
+            <Button type="submit" disabled={submitting} style={accentColor ? { backgroundColor: accentColor } : undefined}>
+              {submitting ? "Submitting…" : schema.submitButtonLabel || "Submit"}
+            </Button>
+          )}
+          {schema.saveAndResumeLater ? (
+            <Button type="button" variant="ghost" disabled={savingDraft} onClick={handleSaveForLater}>
+              {savingDraft ? "Saving…" : "Save for later"}
+            </Button>
+          ) : null}
+        </div>
       </form>
+    </>
+  );
+
+  return (
+    <div className="mx-auto max-w-xl px-4 py-10 sm:py-16">
+      {isCard ? <div className="rounded-xl border bg-card p-6 shadow-sm sm:p-8">{formBody}</div> : formBody}
     </div>
   );
 }

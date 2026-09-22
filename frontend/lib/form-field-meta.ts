@@ -1,4 +1,15 @@
-import type { FormFieldType, FormConditionOperator, FormAutomationType } from "@/lib/types";
+import type { FormFieldType, FormConditionOperator, FormAutomationType, FormSettings } from "@/lib/types";
+
+export const DEFAULT_FORM_SETTINGS: FormSettings = {
+  status: "draft",
+  acceptResponses: true,
+  onePerPerson: false,
+  allowResponseEditing: false,
+  saveAndResumeLater: false,
+  requireLogin: false,
+  anonymousResponses: true,
+  spamProtectionEnabled: false,
+};
 
 export const FORM_FIELD_TYPES: FormFieldType[] = [
   "short_text",
@@ -47,6 +58,7 @@ export const CONDITION_OPERATOR_LABELS: Record<FormConditionOperator, string> = 
 
 export const AUTOMATION_TYPE_LABELS: Record<FormAutomationType, string> = {
   create_person: "Create a Person",
+  create_company: "Create a Company",
   create_project: "Create a Project",
   create_task: "Create a Task",
   create_transaction: "Create a Transaction",
@@ -55,6 +67,7 @@ export const AUTOMATION_TYPE_LABELS: Record<FormAutomationType, string> = {
 /** Property keys each automation action type accepts, mirroring each domain's own properties shape. */
 export const AUTOMATION_PROPERTY_KEYS: Record<FormAutomationType, string[]> = {
   create_person: ["email", "phone", "company", "role", "notes"],
+  create_company: ["website", "industry", "size", "notes"],
   create_project: ["status", "description", "deadline"],
   create_task: ["status", "priority", "dueDate", "notes"],
   create_transaction: ["transactionType", "amount", "currency", "date", "description", "accountId", "categoryId", "toAccountId"],

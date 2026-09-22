@@ -1,14 +1,24 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ExternalLink, Loader2, Trash2 } from "lucide-react";
+import { Building2, CheckSquare, ExternalLink, FolderKanban, Loader2, Receipt, Trash2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { api, ApiError } from "@/lib/api-client";
+import { AUTOMATION_TYPE_LABELS } from "@/lib/form-field-meta";
 import { OBJECT_TYPE_META } from "@/lib/type-meta";
-import type { Form, FormResponse } from "@/lib/types";
+import type { Form, FormAutomationType, FormResponse } from "@/lib/types";
+import { CreateObjectDialog } from "./create-object-dialog";
+
+const MANUAL_ACTION_TYPES: { type: FormAutomationType; icon: typeof UserRound }[] = [
+  { type: "create_person", icon: UserRound },
+  { type: "create_company", icon: Building2 },
+  { type: "create_task", icon: CheckSquare },
+  { type: "create_project", icon: FolderKanban },
+  { type: "create_transaction", icon: Receipt },
+];
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
@@ -71,6 +81,7 @@ function ResponseDetailContent({
   const [response, setResponse] = useState<FormResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [creatingType, setCreatingType] = useState<FormAutomationType | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -156,7 +167,40 @@ function ResponseDetailContent({
             </ul>
           </div>
         ) : null}
+
+        <div className="mt-5 border-t pt-4">
+          <p className="mb-2 text-[12px] font-medium text-muted-foreground">LifeOS Actions</p>
+          <div className="flex flex-col gap-1.5">
+            {MANUAL_ACTION_TYPES.map(({ type, icon: Icon }) => (
+              <Button key={type} variant="outline" size="sm" className="justify-start gap-1.5" onClick={() => setCreatingType(type)}>
+                <Icon className="size-3.5" />
+                {AUTOMATION_TYPE_LABELS[type]}
+              </Button>
+            ))}
+          </div>
+        </div>
       </div>
+
+      <CreateObjectDialog
+        objectType={creatingType}
+        fields={fields}
+        formId={form.id}
+        responseId={response.id}
+        open={creatingType !== null}
+        onOpenChange={(next) => !next && setCreatingType(null)}
+        onCreated={(created) => {
+          setResponse((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  properties: prev.properties
+                    ? { ...prev.properties, createdObjects: [...prev.properties.createdObjects, created] }
+                    : prev.properties,
+                }
+              : prev
+          );
+        }}
+      />
 
       <SheetFooter className="flex-row justify-end">
         <Button

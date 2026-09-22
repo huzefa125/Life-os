@@ -24,6 +24,18 @@ export interface Person {
   updatedAt: string;
 }
 
+export interface Company {
+  id: string;
+  type: "company";
+  title: string;
+  properties: Record<string, JsonValue> | null;
+  tags?: string[];
+  status?: "active" | "archived" | "trash";
+  isFavorite?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type TaskStatus = "todo" | "in_progress" | "completed";
 export type TaskPriority = "low" | "medium" | "high";
 
@@ -397,10 +409,20 @@ export interface FormField {
   helpText?: string;
   placeholder?: string;
   required: boolean;
+  sectionId?: string;
   options?: string[];
+  optionDescriptions?: Record<string, string>;
+  allowOther?: boolean;
+  randomizeOptions?: boolean;
+  minSelections?: number;
+  maxSelections?: number;
   min?: number;
   max?: number;
   step?: number;
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+  patternMessage?: string;
   currencyCode?: string;
   ratingMax?: number;
   maxSizeMB?: number;
@@ -408,12 +430,19 @@ export interface FormField {
   visibleIf?: FormCondition;
 }
 
+export interface FormSection {
+  id: string;
+  title: string;
+  description?: string;
+  skipIf?: FormCondition;
+}
+
 export type FormFieldMapping =
   | { source: "field"; fieldId: string }
   | { source: "static"; value: JsonValue }
   | { source: "action_object_id"; actionId: string };
 
-export type FormAutomationType = "create_person" | "create_project" | "create_task" | "create_transaction";
+export type FormAutomationType = "create_person" | "create_company" | "create_project" | "create_task" | "create_transaction";
 
 export interface FormAutomationRelation {
   relationType: RelationType;
@@ -431,11 +460,40 @@ export interface FormAutomation {
   relations?: FormAutomationRelation[];
 }
 
+export type FormStatus = "draft" | "published" | "closed";
+export type FormLayout = "card" | "full_page";
+
+export interface FormSettings {
+  status: FormStatus;
+  acceptResponses: boolean;
+  startDate?: string;
+  endDate?: string;
+  responseLimit?: number;
+  onePerPerson: boolean;
+  allowResponseEditing: boolean;
+  saveAndResumeLater: boolean;
+  redirectUrl?: string;
+  requireLogin: boolean;
+  anonymousResponses: boolean;
+  spamProtectionEnabled: boolean;
+  randomizeFields?: boolean;
+  showProgressBar?: boolean;
+  layout?: FormLayout;
+}
+
+export interface FormDesign {
+  accentColor?: string;
+  logoUrl?: string;
+  coverImageUrl?: string;
+  backgroundColor?: string;
+}
+
 export interface FormProperties {
   description?: string;
   fields: FormField[];
-  published: boolean;
-  publishedAt?: string;
+  sections?: FormSection[];
+  settings: FormSettings;
+  design?: FormDesign;
   automations: FormAutomation[];
   submitButtonLabel?: string;
   successMessage?: string;
@@ -480,12 +538,29 @@ export interface FormResponse {
   updatedAt: string;
 }
 
+export type FormAvailabilityStatus = "open" | "not_yet_open" | "closed" | "paused" | "limit_reached";
+
+export interface FormAvailability {
+  status: FormAvailabilityStatus;
+  message?: string;
+}
+
 export interface PublicFormSchema {
   id: string;
   title: string;
   description?: string;
   fields: FormField[];
+  sections?: FormSection[];
+  design?: FormDesign;
   submitButtonLabel?: string;
+  availability: FormAvailability;
+  allowResponseEditing: boolean;
+  saveAndResumeLater: boolean;
+  onePerPerson: boolean;
+  requireLogin: boolean;
+  showProgressBar?: boolean;
+  randomizeFields?: boolean;
+  layout?: FormLayout;
 }
 
 export interface FavoriteItem extends GenericObject {
@@ -514,7 +589,8 @@ export type RelationType =
   | "for_category"
   | "funds_from"
   | "has_response"
-  | "created";
+  | "created"
+  | "works_at";
 
 export interface Relation {
   id: string;

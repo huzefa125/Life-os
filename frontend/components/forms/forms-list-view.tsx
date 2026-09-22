@@ -107,7 +107,13 @@ export function FormsListView() {
             </TableHeader>
             <TableBody>
               {forms.map((form) => {
-                const published = form.properties?.published ?? false;
+                const status = form.properties?.settings.status ?? "draft";
+                const badgeClass =
+                  status === "published"
+                    ? "bg-emerald-100 text-emerald-700"
+                    : status === "closed"
+                      ? "bg-amber-100 text-amber-700"
+                      : "bg-muted text-muted-foreground";
                 return (
                   <TableRow
                     key={form.id}
@@ -116,14 +122,9 @@ export function FormsListView() {
                   >
                     <TableCell className="py-2 pl-0 text-[13px] font-medium">{form.title}</TableCell>
                     <TableCell>
-                      <span
-                        className={cn(
-                          "flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
-                          published ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"
-                        )}
-                      >
-                        {published ? "Published" : "Draft"}
-                        {published ? (
+                      <span className={cn("flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium capitalize", badgeClass)}>
+                        {status}
+                        {status === "published" ? (
                           <a
                             href={`/f/${form.id}`}
                             target="_blank"

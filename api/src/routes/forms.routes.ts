@@ -14,8 +14,11 @@ router.delete("/:id", formController.deleteForm);
 
 router.post("/:id/publish", formController.publishForm);
 router.post("/:id/unpublish", formController.unpublishForm);
+router.post("/:id/close", formController.closeForm);
+router.post("/:id/reopen", formController.reopenForm);
 
 router.get("/:id/responses/export.csv", formController.exportResponsesCsv);
+router.post("/:id/responses/:responseId/create-object", formController.createObjectFromResponse);
 router.get("/:id/responses/:responseId", formController.getResponse);
 router.delete("/:id/responses/:responseId", formController.deleteResponse);
 router.get("/:id/responses", formController.getResponses);

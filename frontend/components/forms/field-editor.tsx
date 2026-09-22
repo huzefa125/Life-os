@@ -18,15 +18,17 @@ import {
   FIELD_TYPE_LABELS,
   FORM_FIELD_TYPES,
 } from "@/lib/form-field-meta";
-import type { FormCondition, FormConditionOperator, FormField } from "@/lib/types";
+import type { FormCondition, FormConditionOperator, FormField, FormSection } from "@/lib/types";
 
 const NO_CONDITION = "__none__";
+const NO_SECTION = "__none__";
 
 export function FieldEditor({
   field,
   index,
   total,
   earlierFields,
+  sections,
   onChange,
   onDelete,
   onMoveUp,
@@ -36,6 +38,7 @@ export function FieldEditor({
   index: number;
   total: number;
   earlierFields: FormField[];
+  sections: FormSection[];
   onChange: (field: FormField) => void;
   onDelete: () => void;
   onMoveUp: () => void;
@@ -43,6 +46,8 @@ export function FieldEditor({
 }) {
   const isChoice = CHOICE_FIELD_TYPES.has(field.type);
   const needsRange = field.type === "number" || field.type === "currency" || field.type === "rating";
+  const isText = field.type === "short_text" || field.type === "long_text";
+  const supportsPattern = field.type === "short_text" || field.type === "email" || field.type === "url";
 
   function update(patch: Partial<FormField>) {
     onChange({ ...field, ...patch });
@@ -102,6 +107,24 @@ export function FieldEditor({
                 ))}
               </SelectContent>
             </Select>
+            {sections.length > 0 ? (
+              <Select
+                value={field.sectionId ?? NO_SECTION}
+                onValueChange={(value) => update({ sectionId: !value || value === NO_SECTION ? undefined : value })}
+              >
+                <SelectTrigger size="sm" className="w-36">
+                  <SelectValue placeholder="Page" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_SECTION}>Page 1</SelectItem>
+                  {sections.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : null}
           </div>
 
           <Input
@@ -119,7 +142,15 @@ export function FieldEditor({
                     value={option}
                     onChange={(e) => updateOption(i, e.target.value)}
                     placeholder={`Option ${i + 1}`}
-                    className="h-7 text-[13px]"
+                    className="h-7 flex-1 text-[13px]"
+                  />
+                  <Input
+                    value={field.optionDescriptions?.[option] ?? ""}
+                    onChange={(e) =>
+                      update({ optionDescriptions: { ...field.optionDescriptions, [option]: e.target.value } })
+                    }
+                    placeholder="Description (optional)"
+                    className="h-7 flex-1 text-[13px] text-muted-foreground"
                   />
                   <Button variant="ghost" size="icon-xs" onClick={() => removeOption(i)}>
                     <X className="size-3.5" />
@@ -129,6 +160,76 @@ export function FieldEditor({
               <Button variant="outline" size="xs" className="w-fit" onClick={addOption}>
                 Add option
               </Button>
+
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <label className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                  <Checkbox checked={field.allowOther ?? false} onCheckedChange={(c) => update({ allowOther: c === true })} />
+                  Allow &quot;Other&quot;
+                </label>
+                <label className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                  <Checkbox checked={field.randomizeOptions ?? false} onCheckedChange={(c) => update({ randomizeOptions: c === true })} />
+                  Randomize order
+                </label>
+              </div>
+
+              {field.type === "checkbox" ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min={0}
+                    value={field.minSelections ?? ""}
+                    onChange={(e) => update({ minSelections: e.target.value === "" ? undefined : Number(e.target.value) })}
+                    placeholder="Min selections"
+                    className="h-7 w-32 text-[13px]"
+                  />
+                  <Input
+                    type="number"
+                    min={1}
+                    value={field.maxSelections ?? ""}
+                    onChange={(e) => update({ maxSelections: e.target.value === "" ? undefined : Number(e.target.value) })}
+                    placeholder="Max selections"
+                    className="h-7 w-32 text-[13px]"
+                  />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {isText ? (
+            <div className="flex flex-wrap gap-2">
+              <Input
+                type="number"
+                min={0}
+                value={field.minLength ?? ""}
+                onChange={(e) => update({ minLength: e.target.value === "" ? undefined : Number(e.target.value) })}
+                placeholder="Min characters"
+                className="h-7 w-32 text-[13px]"
+              />
+              <Input
+                type="number"
+                min={1}
+                value={field.maxLength ?? ""}
+                onChange={(e) => update({ maxLength: e.target.value === "" ? undefined : Number(e.target.value) })}
+                placeholder="Max characters"
+                className="h-7 w-32 text-[13px]"
+              />
+            </div>
+          ) : null}
+
+          {supportsPattern ? (
+            <div className="flex flex-wrap gap-2">
+              <Input
+                value={field.pattern ?? ""}
+                onChange={(e) => update({ pattern: e.target.value || undefined })}
+                placeholder="Custom regex (optional)"
+                className="h-7 flex-1 min-w-[160px] font-mono text-[12px]"
+              />
+              <Input
+                value={field.patternMessage ?? ""}
+                onChange={(e) => update({ patternMessage: e.target.value || undefined })}
+                placeholder="Error message"
+                className="h-7 flex-1 min-w-[160px] text-[13px]"
+              />
             </div>
           ) : null}
 

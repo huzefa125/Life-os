@@ -7,14 +7,18 @@ import type {
   BudgetProperties,
   CalendarEvent,
   Category,
+  Company,
   CategoryProperties,
   DetailedObject,
   EventProperties,
   FavoriteItem,
   FileProperties,
   Form,
+  FormAutomationType,
+  FormFieldMapping,
   FormProperties,
   FormResponse,
+  FormResponseCreatedObject,
   GenericObject,
   Goal,
   GoalProperties,
@@ -120,6 +124,21 @@ export const api = {
         body: JSON.stringify(input),
       }),
     remove: (id: string) => request<Person>(`/api/people/${id}`, { method: "DELETE" }),
+  },
+  companies: {
+    list: () => request<Company[]>("/api/companies"),
+    get: (id: string) => request<Company>(`/api/companies/${id}`),
+    create: (input: { name: string; properties?: Record<string, JsonValue> }) =>
+      request<Company>("/api/companies", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    update: (id: string, input: { name?: string; properties?: Record<string, JsonValue> }) =>
+      request<Company>(`/api/companies/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(input),
+      }),
+    remove: (id: string) => request<Company>(`/api/companies/${id}`, { method: "DELETE" }),
   },
   tasks: {
     list: () => request<Task[]>("/api/tasks"),
@@ -399,12 +418,23 @@ export const api = {
     remove: (id: string) => request<Form>(`/api/forms/${id}`, { method: "DELETE" }),
     publish: (id: string) => request<Form>(`/api/forms/${id}/publish`, { method: "POST" }),
     unpublish: (id: string) => request<Form>(`/api/forms/${id}/unpublish`, { method: "POST" }),
+    close: (id: string) => request<Form>(`/api/forms/${id}/close`, { method: "POST" }),
+    reopen: (id: string) => request<Form>(`/api/forms/${id}/reopen`, { method: "POST" }),
     responses: {
       list: (formId: string) => request<FormResponse[]>(`/api/forms/${formId}/responses`),
       get: (formId: string, responseId: string) =>
         request<FormResponse>(`/api/forms/${formId}/responses/${responseId}`),
       remove: (formId: string, responseId: string) =>
         request<FormResponse>(`/api/forms/${formId}/responses/${responseId}`, { method: "DELETE" }),
+      createObject: (
+        formId: string,
+        responseId: string,
+        action: { type: FormAutomationType; titleMapping: FormFieldMapping; propertyMappings: Record<string, FormFieldMapping> }
+      ) =>
+        request<FormResponseCreatedObject>(`/api/forms/${formId}/responses/${responseId}/create-object`, {
+          method: "POST",
+          body: JSON.stringify(action),
+        }),
       exportCsv: async (formId: string) => {
         const token = getToken();
         const res = await fetch(`${API_URL}/api/forms/${formId}/responses/export.csv`, {
@@ -417,11 +447,16 @@ export const api = {
   },
   publicForms: {
     getSchema: (formId: string) => request<PublicFormSchema>(`/api/public/forms/${formId}`),
-    submit: (formId: string, answers: Record<string, JsonValue>) =>
-      request<{ responseId: string; successMessage?: string }>(`/api/public/forms/${formId}/submit`, {
-        method: "POST",
-        body: JSON.stringify({ answers }),
-      }),
+    getResumable: (formId: string, responseId: string) =>
+      request<{ answers: Record<string, JsonValue>; draft: boolean }>(`/api/public/forms/${formId}/responses/${responseId}`),
+    submit: (formId: string, answers: Record<string, JsonValue>, options?: { draft?: boolean; resumeId?: string }) =>
+      request<{ responseId: string; draft?: boolean; successMessage?: string; redirectUrl?: string }>(
+        `/api/public/forms/${formId}/submit`,
+        {
+          method: "POST",
+          body: JSON.stringify({ answers, ...options }),
+        }
+      ),
     upload: async (formId: string, file: File) => {
       const body = new FormData();
       body.append("file", file);

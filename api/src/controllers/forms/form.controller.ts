@@ -5,6 +5,7 @@ import {
   updateFormSchema,
   formIdParamSchema,
   formResponseIdParamSchema,
+  manualActionSchema,
 } from "../../validation/form.validation";
 import * as formService from "../../services/forms/form.service";
 
@@ -76,6 +77,24 @@ export async function unpublishForm(req: Request, res: Response) {
   return sendSuccess(res, form);
 }
 
+export async function closeForm(req: Request, res: Response) {
+  const parsed = formIdParamSchema.safeParse(req.params);
+  if (!parsed.success) return sendError(res, formatZodError(parsed.error), 400);
+
+  const form = await formService.closeForm(parsed.data.id, req.userId as string);
+  if (!form) return sendError(res, "Form not found", 404);
+  return sendSuccess(res, form);
+}
+
+export async function reopenForm(req: Request, res: Response) {
+  const parsed = formIdParamSchema.safeParse(req.params);
+  if (!parsed.success) return sendError(res, formatZodError(parsed.error), 400);
+
+  const form = await formService.reopenForm(parsed.data.id, req.userId as string);
+  if (!form) return sendError(res, "Form not found", 404);
+  return sendSuccess(res, form);
+}
+
 export async function getResponses(req: Request, res: Response) {
   const parsed = formIdParamSchema.safeParse(req.params);
   if (!parsed.success) return sendError(res, formatZodError(parsed.error), 400);
@@ -101,6 +120,26 @@ export async function deleteResponse(req: Request, res: Response) {
   const response = await formService.deleteResponse(parsed.data.id, parsed.data.responseId, req.userId as string);
   if (!response) return sendError(res, "Response not found", 404);
   return sendSuccess(res, response);
+}
+
+export async function createObjectFromResponse(req: Request, res: Response) {
+  const paramsParsed = formResponseIdParamSchema.safeParse(req.params);
+  if (!paramsParsed.success) return sendError(res, formatZodError(paramsParsed.error), 400);
+
+  const bodyParsed = manualActionSchema.safeParse(req.body);
+  if (!bodyParsed.success) return sendError(res, formatZodError(bodyParsed.error), 400);
+
+  const result = await formService.createObjectFromResponse(
+    paramsParsed.data.id,
+    paramsParsed.data.responseId,
+    req.userId as string,
+    bodyParsed.data
+  );
+  if (!result.ok) {
+    if (result.reason === "NOT_FOUND") return sendError(res, "Response not found", 404);
+    return sendError(res, "Couldn't create that — check the mapped answers (e.g. amount/date/account for a Transaction)", 400);
+  }
+  return sendSuccess(res, result.created, 201);
 }
 
 export async function exportResponsesCsv(req: Request, res: Response) {

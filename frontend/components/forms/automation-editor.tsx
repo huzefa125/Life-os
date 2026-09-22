@@ -32,7 +32,7 @@ import type {
 
 const NONE = "__none__";
 
-function MappingPicker({
+export function MappingPicker({
   mapping,
   onChange,
   fields,
