@@ -5,6 +5,7 @@ import type { FormEvent } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { DateTimePicker } from "@/components/ui/date-picker";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +18,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { api, ApiError } from "@/lib/api-client";
-import { fromDatetimeLocal } from "@/lib/event-meta";
 import type { CalendarEvent, EventMode } from "@/lib/types";
 import { EventModeFields } from "./event-mode-fields";
 
@@ -25,15 +25,13 @@ function defaultStart() {
   const d = new Date();
   d.setMinutes(0, 0, 0);
   d.setHours(d.getHours() + 1);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return d.toISOString();
 }
 
 function defaultEnd(start: string) {
   const d = new Date(start);
   d.setHours(d.getHours() + 1);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return d.toISOString();
 }
 
 export function CreateEventDialog({
@@ -73,8 +71,8 @@ export function CreateEventDialog({
       const created = await api.events.create({
         title: title.trim(),
         properties: {
-          startAt: fromDatetimeLocal(startAt),
-          endAt: fromDatetimeLocal(endAt),
+          startAt,
+          endAt,
           mode,
           ...(mode === "online"
             ? link.trim()
@@ -126,24 +124,12 @@ export function CreateEventDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="event-start">Starts</Label>
-              <Input
-                id="event-start"
-                type="datetime-local"
-                value={startAt}
-                onChange={(event) => setStartAt(event.target.value)}
-                required
-              />
+              <Label>Starts</Label>
+              <DateTimePicker value={startAt} onChange={(v) => v && setStartAt(v)} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="event-end">Ends</Label>
-              <Input
-                id="event-end"
-                type="datetime-local"
-                value={endAt}
-                onChange={(event) => setEndAt(event.target.value)}
-                required
-              />
+              <Label>Ends</Label>
+              <DateTimePicker value={endAt} onChange={(v) => v && setEndAt(v)} />
             </div>
           </div>
 

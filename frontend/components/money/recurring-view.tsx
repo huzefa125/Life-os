@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { AnimatedNumber } from "@/components/ui/animated-number";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Dialog,
   DialogContent,
@@ -427,25 +428,14 @@ function RecurringFields({
           </Select>
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="recurring-start">Start date</Label>
-          <Input
-            id="recurring-start"
-            type="date"
-            value={properties.startDate}
-            onChange={(event) => setProperties({ ...properties, startDate: event.target.value })}
-            required
-          />
+          <Label>Start date</Label>
+          <DatePicker value={properties.startDate} onChange={(v) => v && setProperties({ ...properties, startDate: v })} />
         </div>
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="recurring-end">End date (optional)</Label>
-        <Input
-          id="recurring-end"
-          type="date"
-          value={properties.endDate ?? ""}
-          onChange={(event) => setProperties({ ...properties, endDate: event.target.value || undefined })}
-        />
+        <Label>End date (optional)</Label>
+        <DatePicker value={properties.endDate} onChange={(v) => setProperties({ ...properties, endDate: v })} placeholder="No end date" />
       </div>
 
       <div className="flex flex-col gap-1.5">

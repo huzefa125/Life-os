@@ -5,6 +5,7 @@ import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Sheet,
   SheetContent,
@@ -314,13 +315,8 @@ function TaskDetailForm({
         </div>
 
         <div className="mt-4 flex flex-col gap-1.5">
-          <Label htmlFor="detail-due-date">Due date</Label>
-          <Input
-            id="detail-due-date"
-            type="date"
-            value={dueDate}
-            onChange={(event) => setDueDate(event.target.value)}
-          />
+          <Label>Due date</Label>
+          <DatePicker value={dueDate || undefined} onChange={(v) => setDueDate(v ?? "")} />
         </div>
 
         <div className="mt-4 flex flex-col gap-1.5">

@@ -5,8 +5,16 @@ import { CheckCircle2, ClipboardList, Copy, Loader2, Lock, Star, Upload } from "
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { DateTimePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { api, ApiError } from "@/lib/api-client";
 import { evaluateCondition } from "@/lib/form-condition";
@@ -114,33 +122,35 @@ function FieldRenderer({
         </div>
       );
     case "datetime":
+      return <DateTimePicker value={(value as string) || undefined} onChange={(v) => onChange(v)} />;
+    case "dropdown": {
+      const isOther = value === OTHER_SENTINEL || (typeof value === "string" && value !== "" && !options.includes(value));
       return (
-        <Input
-          type="datetime-local"
-          value={(value as string) ?? ""}
-          onChange={(e) => onChange(e.target.value)}
-          required={field.required}
-        />
+        <div className="flex flex-col gap-1.5">
+          <Select value={isOther ? OTHER_SENTINEL : ((value as string) ?? "")} onValueChange={(v) => onChange(v ?? "")}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder={field.placeholder ?? "Select an option"} />
+            </SelectTrigger>
+            <SelectContent>
+              {options.map((opt) => (
+                <SelectItem key={opt} value={opt}>
+                  {opt}
+                </SelectItem>
+              ))}
+              {field.allowOther ? <SelectItem value={OTHER_SENTINEL}>Other</SelectItem> : null}
+            </SelectContent>
+          </Select>
+          {isOther ? (
+            <Input
+              value={value === OTHER_SENTINEL ? "" : (value as string)}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="Please specify"
+              className="h-8 text-[13px]"
+            />
+          ) : null}
+        </div>
       );
-    case "dropdown":
-      return (
-        <select
-          value={(value as string) ?? ""}
-          onChange={(e) => onChange(e.target.value)}
-          required={field.required}
-          className="h-9 w-full rounded-md border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-        >
-          <option value="" disabled>
-            {field.placeholder ?? "Select an option"}
-          </option>
-          {options.map((opt) => (
-            <option key={opt} value={opt}>
-              {opt}
-            </option>
-          ))}
-          {field.allowOther ? <option value={OTHER_SENTINEL}>Other</option> : null}
-        </select>
-      );
+    }
     case "radio":
       return (
         <div className="flex flex-col gap-1.5">

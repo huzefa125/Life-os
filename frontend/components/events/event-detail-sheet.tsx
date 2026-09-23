@@ -12,12 +12,12 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { DateTimePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { api, ApiError } from "@/lib/api-client";
-import { fromDatetimeLocal, toDatetimeLocal } from "@/lib/event-meta";
 import type { CalendarEvent, EventMode } from "@/lib/types";
 import { EventModeFields } from "./event-mode-fields";
 
@@ -63,12 +63,8 @@ function EventDetailForm({
   onDeleted: (id: string) => void;
 }) {
   const [title, setTitle] = useState(event.title);
-  const [startAt, setStartAt] = useState(() =>
-    event.properties ? toDatetimeLocal(event.properties.startAt) : ""
-  );
-  const [endAt, setEndAt] = useState(() =>
-    event.properties ? toDatetimeLocal(event.properties.endAt) : ""
-  );
+  const [startAt, setStartAt] = useState(event.properties?.startAt ?? "");
+  const [endAt, setEndAt] = useState(event.properties?.endAt ?? "");
   const [mode, setMode] = useState<EventMode>(event.properties?.mode ?? "in_person");
   const [location, setLocation] = useState(event.properties?.location ?? "");
   const [link, setLink] = useState(event.properties?.link ?? "");
@@ -77,8 +73,8 @@ function EventDetailForm({
   const [deleting, setDeleting] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
-  const loadedStartAt = event.properties ? toDatetimeLocal(event.properties.startAt) : "";
-  const loadedEndAt = event.properties ? toDatetimeLocal(event.properties.endAt) : "";
+  const loadedStartAt = event.properties?.startAt ?? "";
+  const loadedEndAt = event.properties?.endAt ?? "";
 
   const dirty =
     title.trim() !== event.title ||
@@ -96,8 +92,8 @@ function EventDetailForm({
       const updated = await api.events.update(event.id, {
         title: title.trim(),
         properties: {
-          startAt: fromDatetimeLocal(startAt),
-          endAt: fromDatetimeLocal(endAt),
+          startAt,
+          endAt,
           mode,
           ...(mode === "online"
             ? link.trim()
@@ -148,22 +144,12 @@ function EventDetailForm({
       <div className="flex-1 overflow-y-auto px-4 py-4">
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="detail-start">Starts</Label>
-            <Input
-              id="detail-start"
-              type="datetime-local"
-              value={startAt}
-              onChange={(e) => setStartAt(e.target.value)}
-            />
+            <Label>Starts</Label>
+            <DateTimePicker value={startAt} onChange={(v) => v && setStartAt(v)} />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="detail-end">Ends</Label>
-            <Input
-              id="detail-end"
-              type="datetime-local"
-              value={endAt}
-              onChange={(e) => setEndAt(e.target.value)}
-            />
+            <Label>Ends</Label>
+            <DateTimePicker value={endAt} onChange={(v) => v && setEndAt(v)} />
           </div>
         </div>
 

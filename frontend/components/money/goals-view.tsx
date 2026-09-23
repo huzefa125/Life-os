@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { AnimatedNumber } from "@/components/ui/animated-number";
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Dialog,
   DialogContent,
@@ -226,13 +227,8 @@ function GoalFields({
         </div>
       </div>
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="goal-date">Target date</Label>
-        <Input
-          id="goal-date"
-          type="date"
-          value={properties.targetDate ?? ""}
-          onChange={(event) => setProperties({ ...properties, targetDate: event.target.value || undefined })}
-        />
+        <Label>Target date</Label>
+        <DatePicker value={properties.targetDate} onChange={(v) => setProperties({ ...properties, targetDate: v })} placeholder="No target date" />
       </div>
       <div className="flex flex-col gap-1.5">
         <Label>Funded from account</Label>

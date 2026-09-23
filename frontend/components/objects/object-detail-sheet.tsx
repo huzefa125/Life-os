@@ -371,34 +371,35 @@ export function ObjectDetailSheet({
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <Label className="text-[11px]">Select Object</Label>
-                      <select
-                        value={relationTargetId}
-                        onChange={(e) => setRelationTargetId(e.target.value)}
-                        className="mt-1 w-full rounded border bg-background p-1.5 text-xs text-foreground"
-                      >
-                        <option value="">Choose object...</option>
-                        {allObjects.map((item) => (
-                          <option key={item.id} value={item.id}>
-                            [{item.type}] {item.title}
-                          </option>
-                        ))}
-                      </select>
+                      <Select value={relationTargetId} onValueChange={(v) => setRelationTargetId(v ?? "")}>
+                        <SelectTrigger size="sm" className="mt-1 w-full">
+                          <SelectValue placeholder="Choose object..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {allObjects.map((item) => (
+                            <SelectItem key={item.id} value={item.id}>
+                              [{item.type}] {item.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     <div>
                       <Label className="text-[11px]">Relation Type</Label>
-                      <select
-                        value={relationType}
-                        onChange={(e) => setRelationType(e.target.value as RelationType)}
-                        className="mt-1 w-full rounded border bg-background p-1.5 text-xs text-foreground"
-                      >
-                        <option value="works_on">works_on</option>
-                        <option value="has_task">has_task</option>
-                        <option value="has_note">has_note</option>
-                        <option value="has_file">has_file</option>
-                        <option value="knows">knows</option>
-                        <option value="related_to">related_to</option>
-                      </select>
+                      <Select value={relationType} onValueChange={(v) => setRelationType((v ?? "related_to") as RelationType)}>
+                        <SelectTrigger size="sm" className="mt-1 w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="works_on">works_on</SelectItem>
+                          <SelectItem value="has_task">has_task</SelectItem>
+                          <SelectItem value="has_note">has_note</SelectItem>
+                          <SelectItem value="has_file">has_file</SelectItem>
+                          <SelectItem value="knows">knows</SelectItem>
+                          <SelectItem value="related_to">related_to</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { AnimatedNumber } from "@/components/ui/animated-number";
 import { Button } from "@/components/ui/button";
+import { DateTimePicker } from "@/components/ui/date-picker";
 import {
   Dialog,
   DialogContent,
@@ -33,26 +34,15 @@ import { api, ApiError } from "@/lib/api-client";
 import { findParentProject } from "@/lib/relations";
 import type { CalendarEvent, EventProperties, GenericObject } from "@/lib/types";
 
-function toLocalInput(iso?: string) {
-  if (!iso) return "";
-  const date = new Date(iso);
-  const offset = date.getTimezoneOffset() * 60000;
-  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
-}
-
-function toIso(local: string) {
-  return new Date(local).toISOString();
-}
-
 function formatDateTime(iso?: string) {
   if (!iso) return "-";
   return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 
-function defaultEnd(start: string) {
-  const date = start ? new Date(start) : new Date();
+function defaultEnd(startIso: string) {
+  const date = startIso ? new Date(startIso) : new Date();
   date.setHours(date.getHours() + 1);
-  return toLocalInput(date.toISOString());
+  return date.toISOString();
 }
 
 export function EventsView() {
@@ -239,26 +229,15 @@ function EventFields({
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="event-start">Start</Label>
-          <Input
-            id="event-start"
-            type="datetime-local"
-            value={toLocalInput(properties.startAt)}
-            onChange={(event) =>
-              setProperties({ ...properties, startAt: toIso(event.target.value), endAt: properties.endAt || toIso(defaultEnd(event.target.value)) })
-            }
-            required
+          <Label>Start</Label>
+          <DateTimePicker
+            value={properties.startAt}
+            onChange={(v) => v && setProperties({ ...properties, startAt: v, endAt: properties.endAt || defaultEnd(v) })}
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="event-end">End</Label>
-          <Input
-            id="event-end"
-            type="datetime-local"
-            value={toLocalInput(properties.endAt)}
-            onChange={(event) => setProperties({ ...properties, endAt: toIso(event.target.value) })}
-            required
-          />
+          <Label>End</Label>
+          <DateTimePicker value={properties.endAt} onChange={(v) => v && setProperties({ ...properties, endAt: v })} />
         </div>
       </div>
       <div className="flex flex-col gap-1.5">

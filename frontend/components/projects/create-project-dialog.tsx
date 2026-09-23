@@ -5,6 +5,7 @@ import type { FormEvent } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Dialog,
   DialogContent,
@@ -123,13 +124,8 @@ export function CreateProjectDialog({
               </Select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="project-deadline">Deadline</Label>
-              <Input
-                id="project-deadline"
-                type="date"
-                value={deadline}
-                onChange={(event) => setDeadline(event.target.value)}
-              />
+              <Label>Deadline</Label>
+              <DatePicker value={deadline || undefined} onChange={(v) => setDeadline(v ?? "")} />
             </div>
           </div>
 

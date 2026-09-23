@@ -5,21 +5,6 @@ export const EVENT_MODE_LABEL: Record<EventMode, string> = {
   in_person: "In person",
 };
 
-function pad(n: number) {
-  return String(n).padStart(2, "0");
-}
-
-/** Converts an ISO datetime string to the value a `<input type="datetime-local">` expects, in local time. */
-export function toDatetimeLocal(iso: string): string {
-  const d = new Date(iso);
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-/** Converts a `<input type="datetime-local">` value (local time) to an ISO datetime string for the API. */
-export function fromDatetimeLocal(local: string): string {
-  return new Date(local).toISOString();
-}
-
 export function formatEventRange(startAt: string, endAt: string): string {
   const start = new Date(startAt);
   const end = new Date(endAt);

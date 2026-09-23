@@ -5,6 +5,7 @@ import type { FormEvent } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Dialog,
   DialogContent,
@@ -219,13 +220,8 @@ export function CreateTaskDialog({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="task-due-date">Due date</Label>
-            <Input
-              id="task-due-date"
-              type="date"
-              value={dueDate}
-              onChange={(event) => setDueDate(event.target.value)}
-            />
+            <Label>Due date</Label>
+            <DatePicker value={dueDate || undefined} onChange={(v) => setDueDate(v ?? "")} />
           </div>
 
           <div className="flex flex-col gap-1.5">

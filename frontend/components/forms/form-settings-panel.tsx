@@ -1,6 +1,7 @@
 "use client";
 
 import { Checkbox } from "@/components/ui/checkbox";
+import { DateTimePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -10,7 +11,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { fromDatetimeLocalValue, toDatetimeLocalValue } from "@/lib/form-field-meta";
 import type { FormSettings } from "@/lib/types";
 
 function Toggle({
@@ -106,21 +106,11 @@ export function FormSettingsPanel({
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="flex flex-col gap-1.5">
           <Label className="text-[12px] text-muted-foreground">Starts</Label>
-          <Input
-            type="datetime-local"
-            value={toDatetimeLocalValue(settings.startDate)}
-            onChange={(e) => update({ startDate: fromDatetimeLocalValue(e.target.value) })}
-            className="h-8 text-[13px]"
-          />
+          <DateTimePicker value={settings.startDate} onChange={(v) => update({ startDate: v })} placeholder="No start date" />
         </div>
         <div className="flex flex-col gap-1.5">
           <Label className="text-[12px] text-muted-foreground">Ends</Label>
-          <Input
-            type="datetime-local"
-            value={toDatetimeLocalValue(settings.endDate)}
-            onChange={(e) => update({ endDate: fromDatetimeLocalValue(e.target.value) })}
-            className="h-8 text-[13px]"
-          />
+          <DateTimePicker value={settings.endDate} onChange={(v) => update({ endDate: v })} placeholder="No end date" />
         </div>
         <div className="flex flex-col gap-1.5">
           <Label className="text-[12px] text-muted-foreground">Response limit</Label>

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { AnimatedNumber } from "@/components/ui/animated-number";
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Dialog,
   DialogContent,
@@ -322,17 +323,17 @@ export function TransactionsView() {
           </SelectContent>
         </Select>
 
-        <Input
-          type="date"
-          value={dateFrom}
-          onChange={(event) => setDateFrom(event.target.value)}
+        <DatePicker
+          value={dateFrom || undefined}
+          onChange={(v) => setDateFrom(v ?? "")}
+          placeholder="From"
           className="h-7 w-36 text-[13px]"
         />
         <span className="text-[12px] text-muted-foreground">to</span>
-        <Input
-          type="date"
-          value={dateTo}
-          onChange={(event) => setDateTo(event.target.value)}
+        <DatePicker
+          value={dateTo || undefined}
+          onChange={(v) => setDateTo(v ?? "")}
+          placeholder="To"
           className="h-7 w-36 text-[13px]"
         />
 
@@ -514,14 +515,8 @@ function TransactionFields({
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="transaction-date">Date</Label>
-          <Input
-            id="transaction-date"
-            type="date"
-            value={properties.date}
-            onChange={(event) => setProperties({ ...properties, date: event.target.value })}
-            required
-          />
+          <Label>Date</Label>
+          <DatePicker value={properties.date} onChange={(v) => v && setProperties({ ...properties, date: v })} />
         </div>
       </div>
 
