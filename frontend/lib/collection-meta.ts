@@ -47,7 +47,6 @@ export const FIELD_TYPES = Object.keys(FIELD_TYPE_META) as CollectionFieldType[]
 
 export const RELATION_TARGETS: { value: RelationTargetType; label: string }[] = [
   { value: "person", label: "People" },
-  { value: "company", label: "Companies" },
   { value: "project", label: "Projects" },
   { value: "task", label: "Tasks" },
   { value: "note", label: "Notes" },
@@ -218,7 +217,7 @@ export const COLLECTION_TEMPLATES: CollectionTemplate[] = [
       { id: "stage", name: "Stage", type: "select", required: false, config: { options: [option("Lead", "gray"), option("Qualified", "blue"), option("Proposal", "amber"), option("Won", "green"), option("Lost", "red")] } },
       { id: "value", name: "Value", type: "currency", required: false, config: { currencyCode: "USD", min: 0 } },
       { id: "contact", name: "Contact", type: "relation", required: false, config: { targetType: "person" } },
-      { id: "company", name: "Company", type: "relation", required: false, config: { targetType: "company" } },
+      { id: "company", name: "Company", type: "text", required: false },
       { id: "close", name: "Expected close", type: "date", required: false },
     ],
     views: () => [
@@ -272,7 +271,7 @@ export const COLLECTION_TEMPLATES: CollectionTemplate[] = [
       { id: "sku", name: "SKU", type: "text", required: false },
       { id: "qty", name: "Quantity", type: "number", required: false, config: { min: 0, decimals: 0 } },
       { id: "price", name: "Unit price", type: "currency", required: false, config: { currencyCode: "USD", min: 0 } },
-      { id: "supplier", name: "Supplier", type: "relation", required: false, config: { targetType: "company" } },
+      { id: "supplier", name: "Supplier", type: "text", required: false },
       { id: "reorder", name: "Needs reorder", type: "checkbox", required: false },
     ],
     views: () => [{ id: newId("v"), name: "All items", type: "table", filters: [], sorts: [] }],

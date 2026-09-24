@@ -1,5 +1,4 @@
 import {
-  Building2,
   CalendarDays,
   CheckSquare,
   FileText,
@@ -28,7 +27,6 @@ export interface ObjectTypeMeta {
 
 export const OBJECT_TYPE_META: Record<string, ObjectTypeMeta> = {
   person: { label: "People", icon: User, basePath: "/people", color: "text-violet-600" },
-  company: { label: "Companies", icon: Building2, basePath: "/companies", color: "text-fuchsia-600" },
   task: { label: "Tasks", icon: CheckSquare, basePath: "/tasks", color: "text-emerald-600" },
   project: { label: "Projects", icon: FolderKanban, basePath: "/projects", color: "text-blue-600" },
   note: { label: "Notes", icon: FileText, basePath: "/notes", color: "text-amber-600" },

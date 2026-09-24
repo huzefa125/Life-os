@@ -81,7 +81,6 @@ const mappingSchema = z.discriminatedUnion("source", [
 
 export const FORM_AUTOMATION_TYPES = [
   "create_person",
-  "create_company",
   "create_project",
   "create_task",
   "create_transaction",

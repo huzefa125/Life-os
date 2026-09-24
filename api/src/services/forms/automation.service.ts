@@ -1,7 +1,6 @@
 import type { FormAutomation, FormFieldMapping } from "../../validation/form.validation";
 import { evaluateCondition } from "./condition.util";
 import * as personService from "../people/person.service";
-import * as companyService from "../companies/company.service";
 import * as projectService from "../projects/project.service";
 import * as taskService from "../tasks/task.service";
 import * as transactionService from "../transactions/transaction.service";
@@ -78,13 +77,6 @@ export async function runSingleAction(
         properties: properties as Parameters<typeof personService.createPerson>[1]["properties"],
       });
       return { actionId: action.id, actionType: action.type, objectId: person.id, objectType: "person", objectTitle: person.title };
-    }
-    if (action.type === "create_company") {
-      const company = await companyService.createCompany(userId, {
-        name: title,
-        properties: properties as Parameters<typeof companyService.createCompany>[1]["properties"],
-      });
-      return { actionId: action.id, actionType: action.type, objectId: company.id, objectType: "company", objectTitle: company.title };
     }
     if (action.type === "create_project") {
       const project = await projectService.createProject(userId, { title, properties });

@@ -267,7 +267,7 @@ export function FormBuilderView({ initialForm }: { initialForm: Form }) {
               LifeOS automation
             </h2>
             <p className="text-[12px] text-muted-foreground">
-              Turn every submission into real LifeOS objects — a Person, Company, Project, Task, or Money Transaction.
+              Turn every submission into real LifeOS objects — a Person, Project, Task, or Money Transaction.
             </p>
           </div>
           <AutomationEditor automations={automations} fields={fields} onChange={setAutomationsDirty} />

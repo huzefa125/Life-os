@@ -24,18 +24,6 @@ export interface Person {
   updatedAt: string;
 }
 
-export interface Company {
-  id: string;
-  type: "company";
-  title: string;
-  properties: Record<string, JsonValue> | null;
-  tags?: string[];
-  status?: "active" | "archived" | "trash";
-  isFavorite?: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export type TaskStatus = "todo" | "in_progress" | "completed";
 export type TaskPriority = "low" | "medium" | "high";
 
@@ -444,7 +432,7 @@ export type FormFieldMapping =
   | { source: "static"; value: JsonValue }
   | { source: "action_object_id"; actionId: string };
 
-export type FormAutomationType = "create_person" | "create_company" | "create_project" | "create_task" | "create_transaction";
+export type FormAutomationType = "create_person" | "create_project" | "create_task" | "create_transaction";
 
 export interface FormAutomationRelation {
   relationType: RelationType;
@@ -592,7 +580,6 @@ export type RelationType =
   | "funds_from"
   | "has_response"
   | "created"
-  | "works_at"
   | "collection_link";
 
 export interface Relation {
@@ -632,7 +619,6 @@ export type CollectionFieldType =
 
 export type RelationTargetType =
   | "person"
-  | "company"
   | "project"
   | "task"
   | "note"

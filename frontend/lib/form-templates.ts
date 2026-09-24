@@ -27,20 +27,6 @@ export const FORM_TEMPLATES: FormTemplate[] = [
         required: true,
         visibleIf: { fieldId: "is_business", operator: "equals", value: "Yes" },
       },
-      {
-        id: "company_size",
-        type: "number",
-        label: "Company size",
-        required: false,
-        visibleIf: { fieldId: "is_business", operator: "equals", value: "Yes" },
-      },
-      {
-        id: "website",
-        type: "url",
-        label: "Website",
-        required: false,
-        visibleIf: { fieldId: "is_business", operator: "equals", value: "Yes" },
-      },
     ],
     automations: [
       {
@@ -51,19 +37,8 @@ export const FORM_TEMPLATES: FormTemplate[] = [
         propertyMappings: {
           email: { source: "field", fieldId: "email" },
           phone: { source: "field", fieldId: "phone" },
+          company: { source: "field", fieldId: "company_name" },
         },
-      },
-      {
-        id: "a2",
-        type: "create_company",
-        label: "Create Company",
-        condition: { fieldId: "is_business", operator: "equals", value: "Yes" },
-        titleMapping: { source: "field", fieldId: "company_name" },
-        propertyMappings: {
-          website: { source: "field", fieldId: "website" },
-          size: { source: "field", fieldId: "company_size" },
-        },
-        relations: [{ relationType: "works_at", sourceActionId: "a1", targetActionId: "self" }],
       },
       {
         id: "a3",
@@ -72,7 +47,7 @@ export const FORM_TEMPLATES: FormTemplate[] = [
         condition: { fieldId: "is_business", operator: "equals", value: "Yes" },
         titleMapping: { source: "field", fieldId: "company_name" },
         propertyMappings: {},
-        relations: [{ relationType: "related_to", sourceActionId: "a2", targetActionId: "self" }],
+        relations: [{ relationType: "works_on", sourceActionId: "a1", targetActionId: "self" }],
       },
       {
         id: "a4",

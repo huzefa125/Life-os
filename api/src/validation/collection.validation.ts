@@ -22,7 +22,6 @@ export type CollectionFieldType = (typeof COLLECTION_FIELD_TYPES)[number];
 /** LifeOS object types a RELATION field may point at — every one is an `Object` row, so links reuse the Relation table. */
 export const RELATION_TARGET_TYPES = [
   "person",
-  "company",
   "project",
   "task",
   "note",

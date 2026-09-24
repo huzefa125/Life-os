@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Building2, CheckSquare, ExternalLink, FolderKanban, Receipt, Trash2, UserRound } from "lucide-react";
+import { CheckSquare, ExternalLink, FolderKanban, Receipt, Trash2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,6 @@ import { CreateObjectDialog } from "./create-object-dialog";
 
 const MANUAL_ACTION_TYPES: { type: FormAutomationType; icon: typeof UserRound }[] = [
   { type: "create_person", icon: UserRound },
-  { type: "create_company", icon: Building2 },
   { type: "create_task", icon: CheckSquare },
   { type: "create_project", icon: FolderKanban },
   { type: "create_transaction", icon: Receipt },

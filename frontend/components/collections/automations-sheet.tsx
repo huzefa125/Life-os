@@ -42,7 +42,7 @@ export function AutomationsSheet({
             Automations
           </SheetTitle>
           <p className="text-[12px] text-muted-foreground">
-            When a record changes so a condition becomes true, create People, Companies, Projects, Tasks or Transactions — linked back to the record.
+            When a record changes so a condition becomes true, create People, Projects, Tasks or Transactions — linked back to the record.
           </p>
         </SheetHeader>
         {open ? <AutomationsEditor collection={collection} onChange={onChange} onDone={() => onOpenChange(false)} /> : null}

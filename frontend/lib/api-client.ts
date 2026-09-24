@@ -15,7 +15,6 @@ import type {
   CollectionRecordQuery,
   CollectionRecordValues,
   CollectionView,
-  Company,
   CategoryProperties,
   DetailedObject,
   EventProperties,
@@ -132,21 +131,6 @@ export const api = {
         body: JSON.stringify(input),
       }),
     remove: (id: string) => request<Person>(`/api/people/${id}`, { method: "DELETE" }),
-  },
-  companies: {
-    list: () => request<Company[]>("/api/companies"),
-    get: (id: string) => request<Company>(`/api/companies/${id}`),
-    create: (input: { name: string; properties?: Record<string, JsonValue> }) =>
-      request<Company>("/api/companies", {
-        method: "POST",
-        body: JSON.stringify(input),
-      }),
-    update: (id: string, input: { name?: string; properties?: Record<string, JsonValue> }) =>
-      request<Company>(`/api/companies/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify(input),
-      }),
-    remove: (id: string) => request<Company>(`/api/companies/${id}`, { method: "DELETE" }),
   },
   tasks: {
     list: () => request<Task[]>("/api/tasks"),

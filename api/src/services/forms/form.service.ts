@@ -184,7 +184,7 @@ export type CreateObjectFromResponseResult =
   | { ok: false; reason: "NOT_FOUND" | "ACTION_FAILED" };
 
 /**
- * The response detail view's "Create Person / Company / Task / Project /
+ * The response detail view's "Create Person / Task / Project /
  * Transaction" buttons — runs one action against a response's already-stored
  * answers, on demand, reusing the exact same executor the automation engine
  * uses at submit time. Appends the result to the response's `createdObjects`

@@ -58,7 +58,6 @@ export const CONDITION_OPERATOR_LABELS: Record<FormConditionOperator, string> = 
 
 export const AUTOMATION_TYPE_LABELS: Record<FormAutomationType, string> = {
   create_person: "Create a Person",
-  create_company: "Create a Company",
   create_project: "Create a Project",
   create_task: "Create a Task",
   create_transaction: "Create a Transaction",
@@ -67,7 +66,6 @@ export const AUTOMATION_TYPE_LABELS: Record<FormAutomationType, string> = {
 /** Property keys each automation action type accepts, mirroring each domain's own properties shape. */
 export const AUTOMATION_PROPERTY_KEYS: Record<FormAutomationType, string[]> = {
   create_person: ["email", "phone", "company", "role", "notes"],
-  create_company: ["website", "industry", "size", "notes"],
   create_project: ["status", "description", "deadline"],
   create_task: ["status", "priority", "dueDate", "notes"],
   create_transaction: ["transactionType", "amount", "currency", "date", "description", "accountId", "categoryId", "toAccountId"],
@@ -90,7 +88,6 @@ export const RELATION_TYPE_OPTIONS = [
   "funds_from",
   "has_response",
   "created",
-  "works_at",
 ] as const;
 
 export function newFieldId() {

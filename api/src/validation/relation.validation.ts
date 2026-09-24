@@ -16,7 +16,6 @@ export const RELATION_TYPES = [
   "funds_from",
   "has_response",
   "created",
-  "works_at",
   "collection_link",
 ] as const;
 
