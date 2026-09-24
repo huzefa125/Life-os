@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Archive, ArrowUpRight, Clock, RotateCcw, Trash2 } from "lucide-react";
+import { Archive, Clock, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { api, ApiError } from "@/lib/api-client";
@@ -25,20 +25,22 @@ export function ArchiveView() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadArchived();
+    let cancelled = false;
+    api.archive
+      .list()
+      .then((data) => {
+        if (!cancelled) setArchived(data);
+      })
+      .catch((err) => {
+        if (!cancelled) toast.error(err instanceof ApiError ? err.message : "Couldn't load archived items");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
-
-  async function loadArchived() {
-    setLoading(true);
-    try {
-      const data = await api.archive.list();
-      setArchived(data);
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Couldn't load archived items");
-    } finally {
-      setLoading(false);
-    }
-  }
 
   async function handleUnarchive(id: string) {
     try {

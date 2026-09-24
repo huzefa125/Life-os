@@ -190,3 +190,8 @@ export type FormDesign = z.infer<typeof designSchema>;
 export type FormProperties = z.infer<typeof formPropertiesSchema>;
 export type CreateFormBody = z.infer<typeof createFormSchema>;
 export type UpdateFormBody = z.infer<typeof updateFormSchema>;
+
+// Reused by Collections — a collection automation's trigger is a Forms-style
+// condition and its actions are Forms automation actions.
+export const formConditionSchema = conditionSchema;
+export const formAutomationSchema = automationSchema;

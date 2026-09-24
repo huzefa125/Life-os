@@ -38,10 +38,17 @@ model Object {
   archivedAt DateTime?
   deletedAt  DateTime?
 
+  // Set only on type:"collection_record" rows — the owning type:"collection"
+  // Object. A real column (not a properties key) so record lists paginate and
+  // filter off an index instead of scanning JSON.
+  collectionId String?
+
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
   user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  collection Object?    @relation("CollectionRecords", fields: [collectionId], references: [id], onDelete: Cascade)
+  records    Object[]   @relation("CollectionRecords")
 
   sourceRelations Relation[] @relation("SourceRelations")
   targetRelations Relation[] @relation("TargetRelations")
@@ -52,6 +59,7 @@ model Object {
   @@index([type])
   @@index([status])
   @@index([userId, status])
+  @@index([userId, collectionId, status, createdAt])
 }
 
 model Relation {

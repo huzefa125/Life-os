@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { PageLoader } from "@/components/ui/loader";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api-client";
 import type { Form } from "@/lib/types";
@@ -40,11 +40,7 @@ export default function FormBuilderClient() {
   }, [id, router]);
 
   if (loading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <PageLoader />;
   }
 
   if (!form) return null;

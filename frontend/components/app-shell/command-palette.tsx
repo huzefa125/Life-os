@@ -115,7 +115,7 @@ export function CommandPalette({
                   <CommandItem
                     key={result.id}
                     value={result.id}
-                    onSelect={() => go(`${meta.basePath}?focus=${result.id}`)}
+                    onSelect={() => go(meta.href ? meta.href(result) : `${meta.basePath}?focus=${result.id}`)}
                   >
                     <meta.icon />
                     <span className="flex-1 truncate">{result.title}</span>

@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { LogIn, Loader2 } from "lucide-react";
+import { LogIn } from "lucide-react";
+import { PageLoader } from "@/components/ui/loader";
 import { api, ApiError } from "@/lib/api-client";
 import type { PublicFormSchema } from "@/lib/types";
 import { PublicFormView } from "@/components/forms/public-form-view";
@@ -43,11 +44,7 @@ export default function PublicFormClient() {
   }, [formId]);
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <PageLoader fullScreen label="Loading form" className="bg-background" />;
   }
 
   if (requiresLogin) {

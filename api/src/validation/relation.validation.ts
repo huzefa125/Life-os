@@ -17,6 +17,7 @@ export const RELATION_TYPES = [
   "has_response",
   "created",
   "works_at",
+  "collection_link",
 ] as const;
 
 export const relationIdParamSchema = z.object({

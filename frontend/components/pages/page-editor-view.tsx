@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Archive,
   ArrowLeft,
-  BookOpen,
   Check,
   Save,
   Trash2,
@@ -33,7 +32,8 @@ export function PageEditorView({
   const [page, setPage] = useState<Page>(initialPage);
   const [title, setTitle] = useState(initialPage.title);
   const [tags, setTags] = useState<string[]>(initialPage.tags ?? []);
-  const [blocks, setBlocks] = useState<Block[]>(
+  // Lazy initializer: the fallback block's id uses Date.now(), which must only run once, not on every render.
+  const [blocks, setBlocks] = useState<Block[]>(() =>
     initialPage.properties?.blocks && initialPage.properties.blocks.length > 0
       ? initialPage.properties.blocks
       : [
@@ -45,7 +45,7 @@ export function PageEditorView({
         ]
   );
   const [saving, setSaving] = useState(false);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [, setLastSaved] = useState<Date | null>(null);
   const [isDirty, setIsDirty] = useState(false);
 
   // Mark dirty when title, tags, or blocks change

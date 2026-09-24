@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Star } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { navItems, secondaryNavItems } from "./nav-items";
+import { collectionSubNavItems, navItems, secondaryNavItems } from "./nav-items";
 import { api } from "@/lib/api-client";
 import type { FavoriteItem } from "@/lib/types";
 
@@ -27,9 +27,41 @@ function getFavoriteHref(fav: FavoriteItem) {
       return "/events";
     case "file":
       return "/files";
+    case "collection":
+      return `/collections/${fav.id}`;
+    case "collection_record":
+      return fav.collectionId ? `/collections/${fav.collectionId}?record=${fav.id}` : "/collections";
     default:
       return "/timeline";
   }
+}
+
+/** Split out so `useSearchParams` sits under its own Suspense boundary. */
+function CollectionSubNav({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
+  const searchParams = useSearchParams();
+  const activeTab = pathname === "/collections" ? (searchParams.get("tab") ?? "") : null;
+  return (
+    <div className="ml-[15px] flex flex-col gap-px border-l border-sidebar-border pl-2">
+      {collectionSubNavItems.map((sub) => {
+        const tab = new URL(sub.href, "http://x").searchParams.get("tab") ?? "";
+        return (
+          <Link
+            key={sub.href}
+            href={sub.href}
+            onClick={onNavigate}
+            className={cn(
+              "rounded-md px-2 py-1 text-xs transition-colors",
+              activeTab === tab
+                ? "bg-sidebar-accent/70 font-medium text-foreground"
+                : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground"
+            )}
+          >
+            {sub.label}
+          </Link>
+        );
+      })}
+    </div>
+  );
 }
 
 export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
@@ -60,7 +92,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
           const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;
 
-          return (
+          const link = (
             <Link
               key={item.href}
               href={item.href}
@@ -82,6 +114,18 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
               <Icon className={cn("size-[15px] shrink-0", item.color)} />
               <span>{item.label}</span>
             </Link>
+          );
+
+          if (item.href !== "/collections" || !(pathname === "/collections" || pathname.startsWith("/collections/"))) {
+            return link;
+          }
+          return (
+            <div key={item.href} className="flex flex-col gap-px">
+              {link}
+              <Suspense fallback={null}>
+                <CollectionSubNav pathname={pathname} onNavigate={onNavigate} />
+              </Suspense>
+            </div>
           );
         })}
       </nav>

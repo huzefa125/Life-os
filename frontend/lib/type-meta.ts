@@ -5,6 +5,8 @@ import {
   FileText,
   FolderKanban,
   Landmark,
+  Layers,
+  Rows3,
   type LucideIcon,
   Paperclip,
   PiggyBank,
@@ -20,6 +22,8 @@ export interface ObjectTypeMeta {
   icon: LucideIcon;
   basePath: string;
   color: string;
+  /** Overrides `${basePath}?focus=${id}` for types whose page depends on the object (e.g. a record's collection). */
+  href?: (object: { id: string; collectionId?: string | null }) => string;
 }
 
 export const OBJECT_TYPE_META: Record<string, ObjectTypeMeta> = {
@@ -36,4 +40,18 @@ export const OBJECT_TYPE_META: Record<string, ObjectTypeMeta> = {
   budget: { label: "Budgets", icon: PiggyBank, basePath: "/money/budgets", color: "text-lime-600" },
   recurring_transaction: { label: "Recurring", icon: Repeat, basePath: "/money/recurring", color: "text-lime-600" },
   goal: { label: "Goals", icon: Target, basePath: "/money/goals", color: "text-lime-600" },
+  collection: {
+    label: "Collections",
+    icon: Layers,
+    basePath: "/collections",
+    color: "text-teal-600",
+    href: (o) => `/collections/${o.id}`,
+  },
+  collection_record: {
+    label: "Records",
+    icon: Rows3,
+    basePath: "/collections",
+    color: "text-teal-600",
+    href: (o) => (o.collectionId ? `/collections/${o.collectionId}?record=${o.id}` : "/collections"),
+  },
 };

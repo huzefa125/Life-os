@@ -4,31 +4,25 @@ import { useEffect, useState } from "react";
 import {
   Archive,
   ArrowRight,
-  Calendar,
   CheckCircle2,
-  Clock,
   ExternalLink,
   FileText,
   FolderKanban,
-  History,
   Link as LinkIcon,
   Paperclip,
   Plus,
-  Tag as TagIcon,
   Trash2,
-  User,
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
   Sheet,
   SheetContent,
-  SheetHeader,
-  SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/loader";
 import { Separator } from "@/components/ui/separator";
-import { Input } from "@/components/ui/input";
+
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -40,9 +34,8 @@ import {
 import { api, ApiError } from "@/lib/api-client";
 import type { DetailedObject, GenericObject, RelationType } from "@/lib/types";
 import { TagPicker } from "@/components/tags/tag-picker";
-import { TagBadge } from "@/components/tags/tag-badge";
+
 import { FavoriteButton } from "@/components/favorites/favorite-button";
-import { cn } from "@/lib/utils";
 
 function formatDate(iso: string) {
   try {
@@ -55,22 +48,35 @@ function formatDate(iso: string) {
   }
 }
 
-function getObjectIcon(type: string) {
+/** Icon for an object type. A component (not a lookup returning one) so nothing is created during render. */
+function ObjectTypeIcon({ type, className }: { type: string; className?: string }) {
   switch (type) {
     case "project":
-      return FolderKanban;
+      return <FolderKanban className={className} />;
     case "task":
-      return CheckCircle2;
+      return <CheckCircle2 className={className} />;
     case "person":
-      return Users;
+      return <Users className={className} />;
     case "note":
     case "page":
-      return FileText;
+      return <FileText className={className} />;
     case "file":
-      return Paperclip;
+      return <Paperclip className={className} />;
     default:
-      return LinkIcon;
+      return <LinkIcon className={className} />;
   }
+}
+
+/** The display properties this sheet knows how to show; any object type may carry some of them. */
+interface DisplayProperties {
+  status?: string;
+  deadline?: string;
+  priority?: string;
+  amount?: number | string;
+  currency?: string;
+  startAt?: string;
+  description?: string;
+  content?: string;
 }
 
 export function ObjectDetailSheet({
@@ -99,6 +105,8 @@ export function ObjectDetailSheet({
   useEffect(() => {
     if (!objectId || !open) return;
     loadDetail(objectId);
+    // loadDetail is also called after adding a relation; it only reads its argument, so re-running on its identity isn't needed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [objectId, open]);
 
   async function loadDetail(id: string) {
@@ -200,7 +208,7 @@ export function ObjectDetailSheet({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent className="flex flex-col gap-0 sm:max-w-xl overflow-y-auto">
           <div className="flex h-96 items-center justify-center">
-            <div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <Spinner size={24} />
           </div>
         </SheetContent>
       </Sheet>
@@ -208,8 +216,7 @@ export function ObjectDetailSheet({
   }
 
   const obj = detail.object;
-  const ObjIcon = getObjectIcon(obj.type);
-  const properties = (obj.properties ?? {}) as Record<string, any>;
+  const properties = (obj.properties ?? {}) as DisplayProperties;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -220,7 +227,7 @@ export function ObjectDetailSheet({
             <div className="flex items-center justify-between gap-2 pb-2">
               <div className="flex items-center gap-2">
                 <span className="flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-foreground uppercase tracking-wider">
-                  <ObjIcon className="size-3.5 text-primary" />
+                  <ObjectTypeIcon type={obj.type} className="size-3.5 text-primary" />
                   <span>{obj.type}</span>
                 </span>
               </div>
@@ -429,7 +436,6 @@ export function ObjectDetailSheet({
               ) : (
                 <div className="space-y-1.5">
                   {detail.relations.map((rel) => {
-                    const RelIcon = getObjectIcon(rel.otherObject.type);
                     return (
                       <div
                         key={rel.id}
@@ -443,7 +449,7 @@ export function ObjectDetailSheet({
                         className="group flex cursor-pointer items-center justify-between rounded-lg border border-border/70 bg-card px-3 py-2 text-xs transition-colors hover:border-primary/40 hover:bg-muted/30"
                       >
                         <div className="flex items-center gap-2">
-                          <RelIcon className="size-3.5 text-muted-foreground" />
+                          <ObjectTypeIcon type={rel.otherObject.type} className="size-3.5 text-muted-foreground" />
                           <span className="font-medium text-foreground group-hover:text-primary">
                             {rel.otherObject.title}
                           </span>
@@ -474,7 +480,7 @@ export function ObjectDetailSheet({
               ) : (
                 <div className="space-y-1.5">
                   {detail.files.map((file) => {
-                    const fileProps = (file.properties ?? {}) as any;
+                    const fileProps = (file.properties ?? {}) as { size?: number; url?: string };
                     return (
                       <div
                         key={file.id}

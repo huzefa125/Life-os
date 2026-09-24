@@ -319,6 +319,8 @@ export interface GenericObject {
   properties: Record<string, JsonValue> | null;
   tags?: string[];
   status?: "active" | "archived" | "trash";
+  /** Set on custom collection records (type `collection_record`). */
+  collectionId?: string | null;
   isFavorite?: boolean;
   archivedAt?: string | null;
   deletedAt?: string | null;
@@ -590,7 +592,8 @@ export type RelationType =
   | "funds_from"
   | "has_response"
   | "created"
-  | "works_at";
+  | "works_at"
+  | "collection_link";
 
 export interface Relation {
   id: string;
@@ -607,4 +610,169 @@ export interface ObjectConnection {
 export interface ObjectWithConnections {
   object: GenericObject;
   connections: ObjectConnection[];
+}
+
+// ---------- Collections ----------
+
+export type CollectionFieldType =
+  | "text"
+  | "long_text"
+  | "number"
+  | "currency"
+  | "email"
+  | "phone"
+  | "url"
+  | "date"
+  | "datetime"
+  | "checkbox"
+  | "select"
+  | "multi_select"
+  | "rating"
+  | "relation";
+
+export type RelationTargetType =
+  | "person"
+  | "company"
+  | "project"
+  | "task"
+  | "note"
+  | "event"
+  | "file"
+  | "transaction"
+  | "account"
+  | "collection_record";
+
+export interface CollectionSelectOption {
+  value: string;
+  label: string;
+  color?: string;
+}
+
+export interface CollectionFieldConfig {
+  options?: CollectionSelectOption[];
+  currencyCode?: string;
+  min?: number;
+  max?: number;
+  decimals?: number;
+  ratingMax?: number;
+  targetType?: RelationTargetType;
+  targetCollectionId?: string;
+  multiple?: boolean;
+}
+
+export interface CollectionField {
+  id: string;
+  key?: string;
+  name: string;
+  type: CollectionFieldType;
+  description?: string;
+  required: boolean;
+  config?: CollectionFieldConfig;
+}
+
+export type CollectionViewType = "table" | "board" | "gallery" | "calendar";
+
+export type CollectionFilterOperator =
+  | "equals"
+  | "not_equals"
+  | "contains"
+  | "not_contains"
+  | "gt"
+  | "gte"
+  | "lt"
+  | "lte"
+  | "before"
+  | "after"
+  | "is_empty"
+  | "is_not_empty"
+  | "is_checked"
+  | "is_not_checked"
+  | "in";
+
+export interface CollectionFilter {
+  fieldId: string;
+  operator: CollectionFilterOperator;
+  value?: string | number | boolean | string[];
+}
+
+export interface CollectionSort {
+  /** A field id, or one of the built-ins `createdAt` / `updatedAt` / `title`. */
+  fieldId: string;
+  direction: "asc" | "desc";
+}
+
+export interface CollectionView {
+  id: string;
+  name: string;
+  type: CollectionViewType;
+  filters: CollectionFilter[];
+  sorts: CollectionSort[];
+  visibleFieldIds?: string[];
+  fieldOrder?: string[];
+  groupByFieldId?: string;
+  dateFieldId?: string;
+}
+
+export interface CollectionAutomation {
+  id: string;
+  name: string;
+  enabled: boolean;
+  trigger: FormCondition;
+  actions: FormAutomation[];
+}
+
+export interface CollectionProperties {
+  description?: string;
+  icon?: string;
+  color?: string;
+  slug: string;
+  fields: CollectionField[];
+  views: CollectionView[];
+  automations: CollectionAutomation[];
+}
+
+export interface Collection {
+  id: string;
+  title: string;
+  status: "active" | "archived" | "trash";
+  archivedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  properties: CollectionProperties;
+  recordCount: number;
+  isFavorite: boolean;
+}
+
+export type CollectionRecordValues = Record<string, JsonValue>;
+
+export interface CollectionRecord {
+  id: string;
+  title: string;
+  values: CollectionRecordValues;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CollectionRelatedObject {
+  id: string;
+  title: string;
+  type: string;
+  collectionId: string | null;
+}
+
+export interface CollectionRecordPage {
+  records: CollectionRecord[];
+  total: number;
+  page: number;
+  pageSize: number;
+  related: Record<string, CollectionRelatedObject>;
+}
+
+export interface CollectionRecordQuery {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  viewId?: string;
+  filters?: CollectionFilter[];
+  sorts?: CollectionSort[];
 }

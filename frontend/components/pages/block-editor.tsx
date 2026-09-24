@@ -6,7 +6,6 @@ import {
   Code,
   Heading,
   List,
-  Plus,
   Quote,
   SquareCheck,
 } from "lucide-react";

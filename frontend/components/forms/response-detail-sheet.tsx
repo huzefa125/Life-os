@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Building2, CheckSquare, ExternalLink, FolderKanban, Loader2, Receipt, Trash2, UserRound } from "lucide-react";
+import { Building2, CheckSquare, ExternalLink, FolderKanban, Receipt, Trash2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/loader";
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { api, ApiError } from "@/lib/api-client";
 import { AUTOMATION_TYPE_LABELS } from "@/lib/form-field-meta";
@@ -121,7 +122,7 @@ function ResponseDetailContent({
   if (loading) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <Loader2 className="size-5 animate-spin text-muted-foreground" />
+        <Spinner size={22} />
       </div>
     );
   }

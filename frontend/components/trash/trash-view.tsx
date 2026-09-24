@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, Clock, RotateCcw, Trash2 } from "lucide-react";
+import { Clock, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { api, ApiError } from "@/lib/api-client";
@@ -25,20 +25,22 @@ export function TrashView() {
   const [emptying, setEmptying] = useState(false);
 
   useEffect(() => {
-    loadTrash();
+    let cancelled = false;
+    api.trash
+      .list()
+      .then((data) => {
+        if (!cancelled) setTrashItems(data);
+      })
+      .catch((err) => {
+        if (!cancelled) toast.error(err instanceof ApiError ? err.message : "Couldn't load trash");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
-
-  async function loadTrash() {
-    setLoading(true);
-    try {
-      const data = await api.trash.list();
-      setTrashItems(data);
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Couldn't load trash");
-    } finally {
-      setLoading(false);
-    }
-  }
 
   async function handleRestore(id: string) {
     try {

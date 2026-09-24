@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, ClipboardList, Copy, Loader2, Lock, Star, Upload } from "lucide-react";
+import { CheckCircle2, ClipboardList, Copy, Lock, Star, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { DateTimePicker } from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LoadingDots, PageLoader, Spinner } from "@/components/ui/loader";
 import {
   Select,
   SelectContent,
@@ -296,7 +297,8 @@ function FieldRenderer({
           />
           {uploading ? (
             <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
-              <Loader2 className="size-3 animate-spin" /> Uploading…
+              <Spinner size={12} /> Uploading
+              <LoadingDots />
             </span>
           ) : uploaded ? (
             <span className="flex items-center gap-1.5 text-[12px] text-emerald-600">
@@ -467,11 +469,7 @@ export function PublicFormView({ schema }: { schema: PublicFormSchema }) {
   const isCard = schema.layout === "card";
 
   if (loadingResume) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <PageLoader fullScreen label="Loading form" />;
   }
 
   if (blocked) {

@@ -8,6 +8,7 @@ import {
   FileText,
   FolderKanban,
   History,
+  Layers,
   type LucideIcon,
   Paperclip,
   Trash2,
@@ -34,10 +35,18 @@ export const navItems: NavItem[] = [
   { label: "Files", href: "/files", icon: Paperclip, enabled: true, color: "text-cyan-600" },
   { label: "Money", href: "/money", icon: Wallet, enabled: true, color: "text-lime-600" },
   { label: "Forms", href: "/forms", icon: ClipboardList, enabled: true, color: "text-indigo-600" },
+  { label: "Collections", href: "/collections", icon: Layers, enabled: true, color: "text-teal-600" },
   { label: "Timeline", href: "/timeline", icon: History, enabled: true, color: "text-slate-500" },
 ];
 
 export const secondaryNavItems: NavItem[] = [
   { label: "Archive", href: "/archive", icon: Archive, enabled: true, color: "text-slate-500" },
   { label: "Trash", href: "/trash", icon: Trash2, enabled: true, color: "text-rose-500" },
+];
+
+/** Sub-links shown under Collections in the sidebar. */
+export const collectionSubNavItems = [
+  { label: "All Collections", href: "/collections" },
+  { label: "Favorites", href: "/collections?tab=favorites" },
+  { label: "Archived", href: "/collections?tab=archived" },
 ];

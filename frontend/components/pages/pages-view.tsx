@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { BookOpen, Calendar, Clock, Layers, Plus, Search, Tag as TagIcon } from "lucide-react";
+import { BookOpen, Clock, Layers, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -21,26 +21,31 @@ function formatDate(iso: string) {
 
 export function PagesView() {
   const [pages, setPages] = useState<Page[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
 
-  useEffect(() => {
-    loadPages();
-  }, [selectedTag]);
+  // Which tag the current `pages` were loaded for — loading is derived, so switching tags never sets state synchronously in the effect.
+  const [loadedTag, setLoadedTag] = useState<string | null | undefined>(undefined);
+  const loading = loadedTag !== selectedTag;
 
-  async function loadPages() {
-    setLoading(true);
-    try {
-      const data = await api.pages.list(selectedTag ?? undefined);
-      setPages(data);
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Couldn't load pages");
-    } finally {
-      setLoading(false);
-    }
-  }
+  useEffect(() => {
+    let cancelled = false;
+    api.pages
+      .list(selectedTag ?? undefined)
+      .then((data) => {
+        if (!cancelled) setPages(data);
+      })
+      .catch((err) => {
+        if (!cancelled) toast.error(err instanceof ApiError ? err.message : "Couldn't load pages");
+      })
+      .finally(() => {
+        if (!cancelled) setLoadedTag(selectedTag);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedTag]);
 
   const allTags = Array.from(
     new Set(pages.flatMap((p) => p.tags ?? []))

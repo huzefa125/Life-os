@@ -31,6 +31,7 @@ import trashRouter from "./routes/trash.routes";
 import tagsRouter from "./routes/tags.routes";
 import formsRouter from "./routes/forms.routes";
 import publicFormsRouter from "./routes/public-forms.routes";
+import collectionsRouter from "./routes/collections.routes";
 import { errorHandler } from "./middleware/errorHandler";
 import { openApiDocument } from "./docs/openapi";
 
@@ -67,6 +68,7 @@ app.use("/api/trash", trashRouter);
 app.use("/api/tags", tagsRouter);
 app.use("/api/forms", formsRouter);
 app.use("/api/public/forms", publicFormsRouter);
+app.use("/api/collections", collectionsRouter);
 
 // Uploaded form attachments — served with headers that prevent stored-XSS
 // via user-uploaded content (e.g. a crafted PDF/image opened as HTML).

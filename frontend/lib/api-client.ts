@@ -7,6 +7,14 @@ import type {
   BudgetProperties,
   CalendarEvent,
   Category,
+  Collection,
+  CollectionAutomation,
+  CollectionField,
+  CollectionRecord,
+  CollectionRecordPage,
+  CollectionRecordQuery,
+  CollectionRecordValues,
+  CollectionView,
   Company,
   CategoryProperties,
   DetailedObject,
@@ -438,6 +446,99 @@ export const api = {
       exportCsv: async (formId: string) => {
         const token = getToken();
         const res = await fetch(`${API_URL}/api/forms/${formId}/responses/export.csv`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (!res.ok) throw new ApiError(`Export failed (${res.status})`, res.status);
+        return res.blob();
+      },
+    },
+  },
+  collections: {
+    list: (status: "active" | "archived" = "active") => request<Collection[]>(`/api/collections?status=${status}`),
+    get: (id: string) => request<Collection>(`/api/collections/${id}`),
+    create: (input: {
+      name: string;
+      description?: string;
+      icon?: string;
+      color?: string;
+      fields?: CollectionField[];
+      views?: CollectionView[];
+    }) =>
+      request<Collection>("/api/collections", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    update: (
+      id: string,
+      input: { name?: string; description?: string; icon?: string; color?: string; automations?: CollectionAutomation[] }
+    ) =>
+      request<Collection>(`/api/collections/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(input),
+      }),
+    remove: (id: string) => request<{ id: string }>(`/api/collections/${id}`, { method: "DELETE" }),
+    fields: {
+      add: (id: string, field: CollectionField) =>
+        request<Collection>(`/api/collections/${id}/fields`, { method: "POST", body: JSON.stringify(field) }),
+      update: (
+        id: string,
+        fieldId: string,
+        patch: Partial<Pick<CollectionField, "name" | "description" | "required" | "config">>
+      ) =>
+        request<Collection>(`/api/collections/${id}/fields/${fieldId}`, { method: "PATCH", body: JSON.stringify(patch) }),
+      remove: (id: string, fieldId: string) =>
+        request<Collection>(`/api/collections/${id}/fields/${fieldId}`, { method: "DELETE" }),
+      reorder: (id: string, fieldIds: string[]) =>
+        request<Collection>(`/api/collections/${id}/fields/reorder`, { method: "POST", body: JSON.stringify({ fieldIds }) }),
+    },
+    views: {
+      add: (id: string, view: CollectionView) =>
+        request<Collection>(`/api/collections/${id}/views`, { method: "POST", body: JSON.stringify(view) }),
+      update: (
+        id: string,
+        viewId: string,
+        patch: Partial<Omit<CollectionView, "id" | "type" | "groupByFieldId" | "dateFieldId">> & {
+          groupByFieldId?: string | null;
+          dateFieldId?: string | null;
+        }
+      ) =>
+        request<Collection>(`/api/collections/${id}/views/${viewId}`, { method: "PATCH", body: JSON.stringify(patch) }),
+      remove: (id: string, viewId: string) =>
+        request<Collection>(`/api/collections/${id}/views/${viewId}`, { method: "DELETE" }),
+    },
+    records: {
+      list: (id: string, query: CollectionRecordQuery = {}) => {
+        const params = new URLSearchParams();
+        if (query.page) params.set("page", String(query.page));
+        if (query.pageSize) params.set("pageSize", String(query.pageSize));
+        if (query.search) params.set("search", query.search);
+        if (query.viewId) params.set("viewId", query.viewId);
+        if (query.filters?.length) params.set("filters", JSON.stringify(query.filters));
+        if (query.sorts?.length) params.set("sorts", JSON.stringify(query.sorts));
+        return request<CollectionRecordPage>(`/api/collections/${id}/records?${params.toString()}`);
+      },
+      get: (id: string, recordId: string) =>
+        request<CollectionRecord & { related: CollectionRecordPage["related"] }>(`/api/collections/${id}/records/${recordId}`),
+      create: (id: string, values: CollectionRecordValues) =>
+        request<CollectionRecord & { related: CollectionRecordPage["related"] }>(`/api/collections/${id}/records`, {
+          method: "POST",
+          body: JSON.stringify({ values }),
+        }),
+      update: (id: string, recordId: string, values: CollectionRecordValues) =>
+        request<CollectionRecord & { related: CollectionRecordPage["related"] }>(`/api/collections/${id}/records/${recordId}`, {
+          method: "PATCH",
+          body: JSON.stringify({ values }),
+        }),
+      remove: (id: string, recordId: string) =>
+        request<{ id: string }>(`/api/collections/${id}/records/${recordId}`, { method: "DELETE" }),
+      bulk: (id: string, action: "trash" | "archive", recordIds: string[]) =>
+        request<{ count: number }>(`/api/collections/${id}/records/bulk`, {
+          method: "POST",
+          body: JSON.stringify({ action, recordIds }),
+        }),
+      exportCsv: async (id: string) => {
+        const token = getToken();
+        const res = await fetch(`${API_URL}/api/collections/${id}/records/export.csv`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         if (!res.ok) throw new ApiError(`Export failed (${res.status})`, res.status);

@@ -3,7 +3,6 @@
 import { useEffect, useRef } from "react";
 import {
   AlignLeft,
-  ChevronDown,
   Code,
   GripVertical,
   Heading,
@@ -22,7 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
+
 import type { Block, BlockType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -98,8 +97,6 @@ export function BlockItem({
     }
   }
 
-  const currentTypeInfo = BLOCK_TYPES.find((t) => t.type === block.type) ?? BLOCK_TYPES[0];
-  const CurrentIcon = currentTypeInfo.icon;
 
   return (
     <div className="group relative -mx-2 flex items-start rounded-md px-2 py-1 transition-colors hover:bg-muted/40">
